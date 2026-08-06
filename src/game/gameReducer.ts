@@ -117,18 +117,23 @@ function moveOrAttack(state: GameState, fromKey: string, q: number, r: number): 
   } else if (defender.owner === attacker.owner) {
     return state
   } else {
+    const updatedDefenderToughness = defender.currentToughness - getEffectivePower(attacker)
+    const defenderSurvives = updatedDefenderToughness > 0
+    // Killing a Mushroom heals the attacker to full — eating it, thematically
+    // — a direct reward for going on the attack rather than just holding
+    // ground, and self-limiting since it only pays off against Mushrooms an
+    // opponent actually plants.
+    const ateAMushroom = !defenderSurvives && getTemplate(defender.templateId).capturesTerrain
+    const attackerMaxToughness = template.toughness + (attacker.bonusPower ?? 0)
+    const attackerToughnessAfterCombat = attacker.currentToughness - getEffectivePower(defender)
+    const attackerSurvives = attackerToughnessAfterCombat > 0
+
     const updatedAttacker: CreatureInstance = {
       ...attacker,
-      currentToughness: attacker.currentToughness - getEffectivePower(defender),
+      currentToughness: ateAMushroom && attackerSurvives ? attackerMaxToughness : attackerToughnessAfterCombat,
       hasActedThisTurn: true,
     }
-    const updatedDefender: CreatureInstance = {
-      ...defender,
-      currentToughness: defender.currentToughness - getEffectivePower(attacker),
-    }
-
-    const attackerSurvives = updatedAttacker.currentToughness > 0
-    const defenderSurvives = updatedDefender.currentToughness > 0
+    const updatedDefender: CreatureInstance = { ...defender, currentToughness: updatedDefenderToughness }
 
     delete nextCreatures[fromKey]
     delete nextCreatures[toKey]
@@ -161,13 +166,24 @@ function tentacleStrike(state: GameState, fromKey: string, q: number, r: number)
   const defender = state.creatures[toKey]
   if (!defender) return state
 
-  const nextCreatures = { ...state.creatures, [fromKey]: { ...attacker, hasActedThisTurn: true } }
-  const updatedDefender: CreatureInstance = {
-    ...defender,
-    currentToughness: defender.currentToughness - getEffectivePower(attacker),
+  const updatedDefenderToughness = defender.currentToughness - getEffectivePower(attacker)
+  const defenderSurvives = updatedDefenderToughness > 0
+  // Same "eating a Mushroom heals you" rule as moveOrAttack — Big Guy never
+  // takes counter-damage from a tentacle strike, but it can have been
+  // damaged earlier by something that walked up and hit it normally.
+  const ateAMushroom = !defenderSurvives && getTemplate(defender.templateId).capturesTerrain
+  const attackerMaxToughness = getTemplate(attacker.templateId).toughness + (attacker.bonusPower ?? 0)
+
+  const nextCreatures = {
+    ...state.creatures,
+    [fromKey]: {
+      ...attacker,
+      hasActedThisTurn: true,
+      currentToughness: ateAMushroom ? attackerMaxToughness : attacker.currentToughness,
+    },
   }
-  if (updatedDefender.currentToughness > 0) {
-    nextCreatures[toKey] = updatedDefender
+  if (defenderSurvives) {
+    nextCreatures[toKey] = { ...defender, currentToughness: updatedDefenderToughness }
   } else {
     delete nextCreatures[toKey]
   }

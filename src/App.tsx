@@ -56,7 +56,19 @@ function App() {
             </option>
           ))}
         </select>
-        <button id="new-game" onClick={() => dispatch({ type: 'RESET' })}>
+        <button
+          id="new-game"
+          onClick={() => {
+            // Orange (the AI seat) always goes first, so if `opponent` stayed
+            // set, useAiOpponent would see it's already the AI's turn on the
+            // fresh state and move within ~550ms — re-locking the selector
+            // before there's any real chance to change it. Clearing the
+            // choice keeps the AI dormant until one's explicitly picked
+            // again, same as on first load.
+            setOpponent('none')
+            dispatch({ type: 'RESET' })
+          }}
+        >
           New Game
         </button>
         {isAiTurn && <span id="ai-turn-indicator">AI is playing…</span>}
