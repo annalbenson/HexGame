@@ -14,7 +14,7 @@ export const CREATURE_TEMPLATES: CreatureTemplate[] = [
     toughness: 4,
     movement: 1,
     growthPerTurn: 1,
-    requiresCenterControl: true,
+    mustCastOnCenter: true,
     triggersCountdown: true,
   },
 ]

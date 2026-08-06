@@ -37,10 +37,17 @@ export function HexBoard({ state, dispatch }: HexBoardProps) {
   const validTargets = useMemo(() => {
     const targets = new Set<string>()
     if (state.selection?.type === 'card') {
+      const instanceId = state.selection.instanceId
+      const card = state.players[state.activePlayer].hand.find((c) => c.instanceId === instanceId)
+      const template = card ? getTemplate(card.templateId) : null
       for (const hex of hexes) {
-        if (ownerOf(hex, state.territoryPressure) === state.activePlayer && !state.creatures[keyOf(hex)]) {
-          targets.add(keyOf(hex))
-        }
+        const key = keyOf(hex)
+        const occupant = state.creatures[key]
+        // The Big Guy sacrifices its own occupant instead of requiring an
+        // empty hex — mirrors castCreature in gameReducer.ts.
+        const isSacrifice = template?.mustCastOnCenter && occupant?.owner === state.activePlayer
+        if (occupant && !isSacrifice) continue
+        if (ownerOf(hex, state.territoryPressure) === state.activePlayer) targets.add(key)
       }
     } else if (state.selection?.type === 'creature') {
       const attacker = state.creatures[state.selection.hexKey]

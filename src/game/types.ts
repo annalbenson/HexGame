@@ -9,8 +9,8 @@ export interface CreatureTemplate {
   movement: number
   /** If set, this template's effective power/toughness grows by this much per turn elapsed before it's cast. */
   growthPerTurn?: number
-  /** If set, this template can only be cast while its owner held the center hex at the start of the current turn. */
-  requiresCenterControl?: boolean
+  /** If set, this template can only be cast on the board's center hex — see CENTER_COORDS in board.ts. */
+  mustCastOnCenter?: boolean
   /** If set, this creature claims territory within 1 hex of itself for as long as it's alive — see `ownerOf` in board.ts. */
   capturesTerrain?: boolean
   /** If set, casting this starts its owner's opponent's win-by-survival countdown — see `bigGuyCastTurn` on GameState. */
@@ -53,8 +53,6 @@ export interface GameState {
   /** Accumulated territory pressure per hex per player — see `updatePressure` in board.ts. Ownership is read off this, not recomputed live from creature positions. */
   territoryPressure: Record<string, Record<PlayerId, number>>
   selection: Selection
-  /** Who occupied the center hex when the active player's turn began — not live, so you can't take the center and cast in the same turn. */
-  centerControlAtTurnStart: PlayerId | null
   /** Turn number each player cast The Big Guy on, if they have — starts that player's opponent's win-by-survival countdown. Null until cast. */
   bigGuyCastTurn: Record<PlayerId, number | null>
   winner: PlayerId | 'draw' | null

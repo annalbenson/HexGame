@@ -18,6 +18,7 @@ export type GameAction =
   | { type: 'CLICK_HEX'; q: number; r: number }
   | { type: 'DESELECT' }
   | { type: 'END_TURN' }
+  | { type: 'RESET' }
 
 function createPlayerState(playerId: PlayerId): PlayerState {
   const { deck, hand } = buildStartingHand(playerId)
@@ -32,7 +33,6 @@ export function createInitialState(): GameState {
     creatures: {},
     territoryPressure: createEmptyPressure(),
     selection: null,
-    centerControlAtTurnStart: null,
     bigGuyCastTurn: { orange: null, purple: null },
     winner: null,
     winReason: null,
@@ -50,16 +50,24 @@ function coordsFromKey(key: string): { q: number; r: number } {
 
 function castCreature(state: GameState, instanceId: string, q: number, r: number): GameState {
   const key = hexKey(q, r)
-  if (state.creatures[key]) return state
-  if (ownerOf({ q, r }, state.territoryPressure) !== state.activePlayer) return state
-
   const player = state.players[state.activePlayer]
   const card = player.hand.find((c) => c.instanceId === instanceId)
   if (!card) return state
 
   const template = getTemplate(card.templateId)
+
+  // Every other creature requires an empty hex. The Big Guy is the one
+  // exception: casting it onto your own creature sacrifices that creature
+  // instead of being blocked — an enemy occupant still blocks it, so the
+  // center has to be cleared by combat first if someone else is standing
+  // there.
+  const occupant = state.creatures[key]
+  const isSacrifice = template.mustCastOnCenter && occupant?.owner === state.activePlayer
+  if (occupant && !isSacrifice) return state
+
+  if (ownerOf({ q, r }, state.territoryPressure) !== state.activePlayer) return state
   if (player.mana < template.cost) return state
-  if (template.requiresCenterControl && state.centerControlAtTurnStart !== state.activePlayer) return state
+  if (template.mustCastOnCenter && (q !== CENTER_COORDS.q || r !== CENTER_COORDS.r)) return state
   if (!template.capturesTerrain && !controlsTerritoryBeyondHome(state.activePlayer, state.territoryPressure)) return state
 
   const { toughness, bonus } = effectiveStats(template, state.turnNumber)
@@ -149,7 +157,6 @@ function endTurn(state: GameState): GameState {
 
   const incomingPlayer = state.players[nextPlayer]
   const { deck, hand } = drawCards(incomingPlayer.deck, incomingPlayer.hand, DRAW_PER_TURN)
-  const centerOccupant = nextCreatures[hexKey(CENTER_COORDS.q, CENTER_COORDS.r)]
 
   const counts = territoryCounts(nextPressure)
   const territoryBonus = counts[nextPlayer] > counts[state.activePlayer] ? TERRITORY_ADVANTAGE_BONUS : 0
@@ -165,7 +172,6 @@ function endTurn(state: GameState): GameState {
     creatures: nextCreatures,
     territoryPressure: nextPressure,
     selection: null,
-    centerControlAtTurnStart: centerOccupant?.owner ?? null,
   }
 }
 
@@ -254,6 +260,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
+  if (action.type === 'RESET') return createInitialState()
   if (state.winner) return state
   const nextState = applyAction(state, action)
   const result = checkWinner(nextState)

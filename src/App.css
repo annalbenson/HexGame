@@ -37,6 +37,26 @@
   font-size: 0.85rem;
 }
 
+#opponent-select select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#new-game {
+  background: transparent;
+  color: #cbb8e0;
+  border: 1px solid #6a5885;
+  border-radius: 0.4rem;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+#new-game:hover {
+  border-color: #ffb347;
+  color: #ffb347;
+}
+
 #ai-turn-indicator {
   color: #ffd24a;
   font-style: italic;

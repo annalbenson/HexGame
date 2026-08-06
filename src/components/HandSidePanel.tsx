@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { CREATURE_ART } from '../game/art'
-import { controlsTerritoryBeyondHome } from '../game/board'
+import { CENTER_COORDS, controlsTerritoryBeyondHome, hexKey, ownerOf } from '../game/board'
 import { effectiveStats, getTemplate } from '../game/creatures'
 import type { GameAction } from '../game/gameReducer'
 import type { GameState, PlayerId } from '../game/types'
@@ -39,7 +39,13 @@ export function HandSidePanel({ state, dispatch, playerId, aiPlayer }: HandSideP
           const isSelected = interactive && state.selection?.type === 'card' && state.selection.instanceId === card.instanceId
           const affordable = player.mana >= template.cost
           const isBigGuy = Boolean(template.growthPerTurn)
-          const centerBlocked = Boolean(template.requiresCenterControl) && state.centerControlAtTurnStart !== playerId
+
+          const centerOccupant = state.creatures[hexKey(CENTER_COORDS.q, CENTER_COORDS.r)]
+          const centerHeldByEnemy = Boolean(template.mustCastOnCenter) && Boolean(centerOccupant) && centerOccupant.owner !== playerId
+          const centerNotOwned = Boolean(template.mustCastOnCenter) && ownerOf(CENTER_COORDS, state.territoryPressure) !== playerId
+          const centerBlocked = centerHeldByEnemy || centerNotOwned
+          const willSacrifice = Boolean(template.mustCastOnCenter) && !centerBlocked && centerOccupant?.owner === playerId
+
           const territoryBlocked = !template.capturesTerrain && !hasTerritory
           const { power, toughness, bonus } = effectiveStats(template, state.turnNumber)
 
@@ -62,7 +68,11 @@ export function HandSidePanel({ state, dispatch, playerId, aiPlayer }: HandSideP
                     growing — currently +{bonus}/+{bonus}
                   </div>
                 )}
-                {centerBlocked && <div className="card-locked">requires center hex at turn start</div>}
+                {centerHeldByEnemy && <div className="card-locked">enemy holds the center hex</div>}
+                {centerNotOwned && !centerHeldByEnemy && <div className="card-locked">requires owning the center hex</div>}
+                {willSacrifice && centerOccupant && (
+                  <div className="card-growth">sacrifices {getTemplate(centerOccupant.templateId).name} on the center hex</div>
+                )}
                 {territoryBlocked && <div className="card-locked">requires territory beyond your home hex</div>}
               </div>
             </button>

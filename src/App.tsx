@@ -34,18 +34,31 @@ function App() {
   const guardedDispatch = isAiTurn ? () => {} : dispatch
   const aiPlayer = opponent === 'none' ? null : AI_PLAYER
 
+  // Locked once a game is actually underway (something's been cast, or a
+  // turn's passed) so switching strategies mid-game can't happen by
+  // accident — unlocks again once the game ends or New Game resets it.
+  const gameInProgress = !state.winner && (state.turnNumber > 1 || Object.keys(state.creatures).length > 0)
+
   return (
     <div id="app-root">
       <h1>HexGame</h1>
       <div id="opponent-select">
         <label htmlFor="opponent-strategy">Opponent</label>
-        <select id="opponent-strategy" value={opponent} onChange={(e) => setOpponent(e.target.value as OpponentSetting)}>
+        <select
+          id="opponent-strategy"
+          value={opponent}
+          disabled={gameInProgress}
+          onChange={(e) => setOpponent(e.target.value as OpponentSetting)}
+        >
           {OPPONENT_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>
           ))}
         </select>
+        <button id="new-game" onClick={() => dispatch({ type: 'RESET' })}>
+          New Game
+        </button>
         {isAiTurn && <span id="ai-turn-indicator">AI is playing…</span>}
       </div>
       <div id="game-row">

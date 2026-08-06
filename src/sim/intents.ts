@@ -1,4 +1,4 @@
-import { axialDistance, controlsTerritoryBeyondHome, createGrid, hexKey, ownerOf } from '../game/board'
+import { axialDistance, CENTER_COORDS, controlsTerritoryBeyondHome, createGrid, hexKey, ownerOf } from '../game/board'
 import { getTemplate } from '../game/creatures'
 import type { GameAction } from '../game/gameReducer'
 import type { CardInstance, CreatureInstance, GameState, PlayerId } from '../game/types'
@@ -29,8 +29,16 @@ function castTargetsFor(state: GameState, playerId: PlayerId, card: CardInstance
   const template = getTemplate(card.templateId)
   const player = state.players[playerId]
   if (player.mana < template.cost) return []
-  if (template.requiresCenterControl && state.centerControlAtTurnStart !== playerId) return []
   if (!template.capturesTerrain && !controlsTerritoryBeyondHome(playerId, state.territoryPressure)) return []
+
+  if (template.mustCastOnCenter) {
+    // Casting sacrifices an occupant of your own instead of requiring an
+    // empty hex — but an enemy occupant still blocks it, same as gameReducer.
+    const occupant = state.creatures[hexKey(CENTER_COORDS.q, CENTER_COORDS.r)]
+    if (occupant && occupant.owner !== playerId) return []
+    if (ownerOf(CENTER_COORDS, state.territoryPressure) !== playerId) return []
+    return [{ q: CENTER_COORDS.q, r: CENTER_COORDS.r }]
+  }
 
   const targets: { q: number; r: number }[] = []
   for (const hex of createGrid()) {
