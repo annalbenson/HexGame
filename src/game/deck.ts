@@ -1,3 +1,4 @@
+import { getTemplate } from './creatures'
 import type { CardInstance } from './types'
 
 export const STARTING_HAND_SIZE = 3
@@ -30,6 +31,25 @@ export function buildShuffledDeck(playerId: string): CardInstance[] {
     }
   }
   return shuffle(cards)
+}
+
+/**
+ * Builds a fresh shuffled deck and deals the opening hand, guaranteeing at
+ * least one Mushroom is in it. Non-Mushroom cards now require the caster to
+ * already control territory (see `controlsTerritoryBeyondHome` in board.ts),
+ * so an opening hand with zero Mushrooms would strand a player unable to
+ * cast anything — a ~26% chance if dealt purely at random from this deck
+ * list. Reserving one Mushroom out of the shuffle before dealing the rest
+ * removes that case entirely without touching deck-list odds for the rest
+ * of the game.
+ */
+export function buildStartingHand(playerId: string): { deck: CardInstance[]; hand: CardInstance[] } {
+  const shuffled = buildShuffledDeck(playerId)
+  const mushroomIndex = shuffled.findIndex((c) => getTemplate(c.templateId).capturesTerrain)
+  const [guaranteedMushroom] = shuffled.splice(mushroomIndex, 1)
+  const hand = [guaranteedMushroom, ...shuffled.slice(0, STARTING_HAND_SIZE - 1)]
+  const deck = shuffled.slice(STARTING_HAND_SIZE - 1)
+  return { deck, hand }
 }
 
 /** Draws up to `count` cards from the front of the deck into the hand, respecting the hand-size cap. Excess draws are burned. */

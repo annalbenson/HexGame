@@ -1,6 +1,6 @@
-import { axialDistance, CENTER_COORDS, hexKey, ownerOf, territoryCounts } from './board'
+import { axialDistance, CENTER_COORDS, controlsTerritoryBeyondHome, hexKey, ownerOf, territoryCounts } from './board'
 import { effectiveStats, getEffectivePower, getTemplate } from './creatures'
-import { buildShuffledDeck, drawCards, STARTING_HAND_SIZE } from './deck'
+import { buildStartingHand, drawCards } from './deck'
 import type { CreatureInstance, GameState, PlayerId, PlayerState } from './types'
 
 const STARTING_MANA = 1
@@ -20,9 +20,8 @@ export type GameAction =
   | { type: 'END_TURN' }
 
 function createPlayerState(playerId: PlayerId): PlayerState {
-  const deck = buildShuffledDeck(playerId)
-  const { deck: remainingDeck, hand } = drawCards(deck, [], STARTING_HAND_SIZE)
-  return { mana: STARTING_MANA, deck: remainingDeck, hand, hasFielded: false }
+  const { deck, hand } = buildStartingHand(playerId)
+  return { mana: STARTING_MANA, deck, hand, hasFielded: false }
 }
 
 export function createInitialState(): GameState {
@@ -59,6 +58,7 @@ function castCreature(state: GameState, instanceId: string, q: number, r: number
   const template = getTemplate(card.templateId)
   if (player.mana < template.cost) return state
   if (template.requiresCenterControl && state.centerControlAtTurnStart !== state.activePlayer) return state
+  if (!template.capturesTerrain && !controlsTerritoryBeyondHome(state.activePlayer, state.creatures)) return state
 
   const { toughness, bonus } = effectiveStats(template, state.turnNumber)
   const newCreature: CreatureInstance = {

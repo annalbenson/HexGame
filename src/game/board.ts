@@ -118,3 +118,19 @@ export function territoryCounts(creatures: Record<string, CreatureInstance>): Re
   }
   return counts
 }
+
+/**
+ * Whether a player owns any hex besides their own (unconditional) home hex —
+ * the gate for casting non-Mushroom creatures. Home hex ownership alone
+ * doesn't count, since every player already owns their home from turn one;
+ * this specifically asks whether they've established ground with a live
+ * Mushroom.
+ */
+export function controlsTerritoryBeyondHome(playerId: PlayerId, creatures: Record<string, CreatureInstance>): boolean {
+  const home = HOME_COORDS[playerId]
+  for (const hex of createGrid()) {
+    if (hex.q === home.q && hex.r === home.r) continue
+    if (ownerOf(hex, creatures) === playerId) return true
+  }
+  return false
+}

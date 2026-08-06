@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { CREATURE_ART } from '../game/art'
-import { territoryCounts } from '../game/board'
+import { controlsTerritoryBeyondHome, territoryCounts } from '../game/board'
 import { effectiveStats, getTemplate } from '../game/creatures'
 import type { GameAction } from '../game/gameReducer'
 import type { GameState, PlayerId } from '../game/types'
@@ -26,6 +26,10 @@ export function HandPanel({ state, dispatch }: HandPanelProps) {
   const active = state.players[state.activePlayer]
   const territory = useMemo(() => territoryCounts(state.creatures), [state.creatures])
   const leader: PlayerId | null = territory.orange > territory.purple ? 'orange' : territory.purple > territory.orange ? 'purple' : null
+  const hasTerritory = useMemo(
+    () => controlsTerritoryBeyondHome(state.activePlayer, state.creatures),
+    [state.activePlayer, state.creatures],
+  )
 
   if (state.winner) {
     return (
@@ -62,12 +66,13 @@ export function HandPanel({ state, dispatch }: HandPanelProps) {
           const isBigGuy = Boolean(template.growthPerTurn)
           const hasCenterControl = state.centerControlAtTurnStart === state.activePlayer
           const centerBlocked = Boolean(template.requiresCenterControl) && !hasCenterControl
+          const territoryBlocked = !template.capturesTerrain && !hasTerritory
           const { power, toughness, bonus } = effectiveStats(template, state.turnNumber)
           return (
             <button
               key={card.instanceId}
               className={`card${isSelected ? ' selected' : ''}${isBigGuy ? ' big-guy' : ''}`}
-              disabled={!affordable || centerBlocked}
+              disabled={!affordable || centerBlocked || territoryBlocked}
               onClick={() => dispatch({ type: 'SELECT_CARD', instanceId: card.instanceId })}
             >
               <div className="card-cost-badge">{template.cost}</div>
@@ -83,6 +88,7 @@ export function HandPanel({ state, dispatch }: HandPanelProps) {
                   </div>
                 )}
                 {centerBlocked && <div className="card-locked">requires center hex at turn start</div>}
+                {territoryBlocked && <div className="card-locked">requires territory beyond your home hex</div>}
               </div>
             </button>
           )
