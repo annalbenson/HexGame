@@ -7,6 +7,8 @@ export interface CreatureTemplate {
   power: number
   toughness: number
   movement: number
+  /** If set, this template's effective power/toughness grows by this much per turn elapsed before it's cast. */
+  growthPerTurn?: number
 }
 
 export interface CreatureInstance {
@@ -15,6 +17,8 @@ export interface CreatureInstance {
   currentToughness: number
   hasSummoningSickness: boolean
   hasActedThisTurn: boolean
+  /** Power bonus locked in at cast time, for templates with growthPerTurn. */
+  bonusPower?: number
 }
 
 export interface CardInstance {

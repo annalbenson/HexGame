@@ -107,6 +107,24 @@
   cursor: not-allowed;
 }
 
+.card.big-guy {
+  border-color: #8a5cf6;
+  background: linear-gradient(160deg, #1e1428 0%, #2a1638 100%);
+  box-shadow: 0 0 10px rgba(138, 92, 246, 0.45);
+}
+
+.card.big-guy .card-name {
+  color: #d3a6fb;
+  text-shadow: 0 0 8px rgba(181, 101, 245, 0.6);
+}
+
+.card-growth {
+  font-size: 0.75rem;
+  color: #b565f5;
+  font-style: italic;
+  margin-top: 0.15rem;
+}
+
 .card-name {
   font-weight: 700;
   color: #ffb347;

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { axialDistance, createGrid, hexKey, keyOf, ownerOf, polygonPoints, Tile, HOME_COORDS } from '../game/board'
-import { getTemplate } from '../game/creatures'
+import { getEffectivePower, getTemplate } from '../game/creatures'
 import type { GameAction } from '../game/gameReducer'
 import type { GameState } from '../game/types'
 
@@ -83,6 +83,8 @@ export function HexBoard({ state, dispatch }: HexBoardProps) {
         const template = getTemplate(creature.templateId)
         const isSelected = state.selection?.type === 'creature' && state.selection.hexKey === key
         const isSpent = creature.hasSummoningSickness || creature.hasActedThisTurn
+        const isBigGuy = Boolean(template.growthPerTurn)
+        const radius = isBigGuy ? HEX_TOKEN_RADIUS + 6 : HEX_TOKEN_RADIUS
 
         return (
           <motion.g
@@ -93,15 +95,25 @@ export function HexBoard({ state, dispatch }: HexBoardProps) {
             style={{ cursor: 'pointer' }}
             onClick={() => dispatch({ type: 'CLICK_HEX', q, r })}
           >
+            {isBigGuy && (
+              <motion.circle
+                r={radius + 6}
+                fill="none"
+                stroke={CREATURE_COLOR[creature.owner]}
+                strokeWidth={2}
+                animate={{ opacity: [0.15, 0.6, 0.15], scale: [1, 1.15, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              />
+            )}
             <circle
-              r={HEX_TOKEN_RADIUS}
+              r={radius}
               fill={CREATURE_COLOR[creature.owner]}
               stroke={isSelected ? '#ffffff' : '#0c0810'}
               strokeWidth={isSelected ? 3 : 1.5}
               opacity={isSpent ? 0.55 : 1}
             />
-            <text textAnchor="middle" dy="0.35em" fontSize="12" fontWeight="700" fill="#0c0810">
-              {template.power}/{creature.currentToughness}
+            <text textAnchor="middle" dy="0.35em" fontSize={isBigGuy ? 13 : 12} fontWeight="700" fill="#0c0810">
+              {getEffectivePower(creature)}/{creature.currentToughness}
             </text>
           </motion.g>
         )

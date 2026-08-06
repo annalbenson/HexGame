@@ -1,4 +1,4 @@
-import { getTemplate } from '../game/creatures'
+import { effectiveStats, getTemplate } from '../game/creatures'
 import type { GameAction } from '../game/gameReducer'
 import type { GameState, PlayerId } from '../game/types'
 
@@ -30,17 +30,20 @@ export function HandPanel({ state, dispatch }: HandPanelProps) {
           const template = getTemplate(card.templateId)
           const isSelected = state.selection?.type === 'card' && state.selection.instanceId === card.instanceId
           const affordable = active.mana >= template.cost
+          const isBigGuy = Boolean(template.growthPerTurn)
+          const { power, toughness, bonus } = effectiveStats(template, state.turnNumber)
           return (
             <button
               key={card.instanceId}
-              className={`card${isSelected ? ' selected' : ''}`}
+              className={`card${isSelected ? ' selected' : ''}${isBigGuy ? ' big-guy' : ''}`}
               disabled={!affordable}
               onClick={() => dispatch({ type: 'SELECT_CARD', instanceId: card.instanceId })}
             >
               <div className="card-name">{template.name}</div>
               <div className="card-stats">
-                {template.power}/{template.toughness} · move {template.movement}
+                {power}/{toughness} · move {template.movement}
               </div>
+              {isBigGuy && <div className="card-growth">growing — currently +{bonus}/+{bonus}</div>}
               <div className="card-cost">{template.cost} mana</div>
             </button>
           )

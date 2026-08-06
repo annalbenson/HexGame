@@ -1,5 +1,5 @@
 import { axialDistance, hexKey, ownerOf } from './board'
-import { getTemplate } from './creatures'
+import { effectiveStats, getEffectivePower, getTemplate } from './creatures'
 import { buildShuffledDeck, drawCards, STARTING_HAND_SIZE } from './deck'
 import type { CreatureInstance, GameState, PlayerId, PlayerState } from './types'
 
@@ -51,12 +51,14 @@ function castCreature(state: GameState, instanceId: string, q: number, r: number
   const template = getTemplate(card.templateId)
   if (player.mana < template.cost) return state
 
+  const { toughness, bonus } = effectiveStats(template, state.turnNumber)
   const newCreature: CreatureInstance = {
     templateId: card.templateId,
     owner: state.activePlayer,
-    currentToughness: template.toughness,
+    currentToughness: toughness,
     hasSummoningSickness: true,
     hasActedThisTurn: false,
+    bonusPower: bonus,
   }
 
   const nextHand = player.hand.filter((c) => c.instanceId !== instanceId)
@@ -93,15 +95,14 @@ function moveOrAttack(state: GameState, fromKey: string, q: number, r: number): 
   } else if (defender.owner === attacker.owner) {
     return state
   } else {
-    const defenderTemplate = getTemplate(defender.templateId)
     const updatedAttacker: CreatureInstance = {
       ...attacker,
-      currentToughness: attacker.currentToughness - defenderTemplate.power,
+      currentToughness: attacker.currentToughness - getEffectivePower(defender),
       hasActedThisTurn: true,
     }
     const updatedDefender: CreatureInstance = {
       ...defender,
-      currentToughness: defender.currentToughness - template.power,
+      currentToughness: defender.currentToughness - getEffectivePower(attacker),
     }
 
     const attackerSurvives = updatedAttacker.currentToughness > 0
