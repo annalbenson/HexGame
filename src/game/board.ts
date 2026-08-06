@@ -83,6 +83,42 @@ function homeOwnerOf(coords: { q: number; r: number }): PlayerId | null {
   return null
 }
 
+const HEX_DIRECTIONS: { q: number; r: number }[] = [
+  { q: 1, r: 0 },
+  { q: 1, r: -1 },
+  { q: 0, r: -1 },
+  { q: -1, r: 0 },
+  { q: -1, r: 1 },
+  { q: 0, r: 1 },
+]
+
+/**
+ * For a stationary attacker at `from` (The Big Guy, always at CENTER_COORDS)
+ * with unlimited reach — the first creature encountered walking outward in
+ * each of the 6 hex directions. An enemy there is a valid target; a
+ * friendly creature blocks that lane entirely (no reaching past your own
+ * screen); an empty lane all the way to the board edge has no target.
+ */
+export function tentacleTargets(
+  from: { q: number; r: number },
+  creatures: Record<string, CreatureInstance>,
+  attackerOwner: PlayerId,
+): { q: number; r: number }[] {
+  const targets: { q: number; r: number }[] = []
+  for (const dir of HEX_DIRECTIONS) {
+    for (let step = 1; step <= BOARD_RADIUS; step++) {
+      const q = from.q + dir.q * step
+      const r = from.r + dir.r * step
+      const creature = creatures[hexKey(q, r)]
+      if (creature) {
+        if (creature.owner !== attackerOwner) targets.push({ q, r })
+        break
+      }
+    }
+  }
+  return targets
+}
+
 /** Accumulated per-hex territory pressure — see `updatePressure`. Keyed by hexKey; every grid hex has an entry once `createEmptyPressure` has run. */
 export type TerritoryPressure = Record<string, Record<PlayerId, number>>
 

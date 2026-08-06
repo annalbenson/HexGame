@@ -1,4 +1,4 @@
-import { axialDistance, CENTER_COORDS, controlsTerritoryBeyondHome, createGrid, hexKey, ownerOf } from '../game/board'
+import { axialDistance, CENTER_COORDS, controlsTerritoryBeyondHome, createGrid, hexKey, ownerOf, tentacleTargets } from '../game/board'
 import { getTemplate } from '../game/creatures'
 import type { GameAction } from '../game/gameReducer'
 import type { CardInstance, CreatureInstance, GameState, PlayerId } from '../game/types'
@@ -52,8 +52,9 @@ function castTargetsFor(state: GameState, playerId: PlayerId, card: CardInstance
 function moveTargetsFor(state: GameState, playerId: PlayerId, fromKey: string, creature: CreatureInstance): { q: number; r: number }[] {
   if (creature.hasSummoningSickness || creature.hasActedThisTurn) return []
   const template = getTemplate(creature.templateId)
-  if (template.movement <= 0) return []
   const from = coordsFromKey(fromKey)
+  if (template.hasTentacleStrike) return tentacleTargets(from, state.creatures, playerId)
+  if (template.movement <= 0) return []
 
   const targets: { q: number; r: number }[] = []
   for (const hex of createGrid()) {

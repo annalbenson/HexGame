@@ -25,16 +25,17 @@ function isMove(intent: Intent): intent is MoveIntent {
   return intent.kind === 'move'
 }
 
-/** null if the move isn't an attack (empty destination hex). */
+/** null if the move isn't an attack (empty destination hex). Tentacle strikes are one-way -- the attacker never takes counter-damage, so bots shouldn't price that risk in. */
 function combatOutcome(state: GameState, move: MoveIntent): { killsDefender: boolean; attackerDies: boolean } | null {
   const attacker = state.creatures[move.fromKey]
   const defender = state.creatures[hexKey(move.q, move.r)]
   if (!defender || defender.owner === attacker.owner) return null
   const attackerPower = getEffectivePower(attacker)
   const defenderPower = getEffectivePower(defender)
+  const isTentacleStrike = getTemplate(attacker.templateId).hasTentacleStrike
   return {
     killsDefender: defender.currentToughness - attackerPower <= 0,
-    attackerDies: attacker.currentToughness - defenderPower <= 0,
+    attackerDies: !isTentacleStrike && attacker.currentToughness - defenderPower <= 0,
   }
 }
 

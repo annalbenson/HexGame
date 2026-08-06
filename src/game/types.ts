@@ -15,6 +15,8 @@ export interface CreatureTemplate {
   capturesTerrain?: boolean
   /** If set, casting this starts its owner's opponent's win-by-survival countdown — see `bigGuyCastTurn` on GameState. */
   triggersCountdown?: boolean
+  /** If set, this creature never moves — instead it strikes the first enemy found in each of the 6 hex directions, at unlimited range, without taking counter-damage. See `tentacleTargets` in board.ts. */
+  hasTentacleStrike?: boolean
 }
 
 export interface CreatureInstance {

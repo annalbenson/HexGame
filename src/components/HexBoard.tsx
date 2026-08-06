@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { CREATURE_ART } from '../game/art'
-import { axialDistance, boardBounds, CENTER_COORDS, createGrid, hexKey, keyOf, ownerOf, polygonPoints, Tile, HOME_COORDS } from '../game/board'
+import { axialDistance, boardBounds, CENTER_COORDS, createGrid, hexKey, keyOf, ownerOf, polygonPoints, tentacleTargets, Tile, HOME_COORDS } from '../game/board'
 import { getEffectivePower, getTemplate } from '../game/creatures'
 import { BIG_GUY_COUNTDOWN } from '../game/gameReducer'
 import type { GameAction } from '../game/gameReducer'
@@ -54,12 +54,18 @@ export function HexBoard({ state, dispatch }: HexBoardProps) {
       if (attacker) {
         const [aq, ar] = state.selection.hexKey.split(',').map(Number)
         const template = getTemplate(attacker.templateId)
-        for (const hex of hexes) {
-          if (keyOf(hex) === state.selection.hexKey) continue
-          const occupant = state.creatures[keyOf(hex)]
-          if (occupant && occupant.owner === attacker.owner) continue
-          if (axialDistance({ q: aq, r: ar }, hex) <= template.movement) {
-            targets.add(keyOf(hex))
+        if (template.hasTentacleStrike) {
+          for (const t of tentacleTargets({ q: aq, r: ar }, state.creatures, attacker.owner)) {
+            targets.add(hexKey(t.q, t.r))
+          }
+        } else {
+          for (const hex of hexes) {
+            if (keyOf(hex) === state.selection.hexKey) continue
+            const occupant = state.creatures[keyOf(hex)]
+            if (occupant && occupant.owner === attacker.owner) continue
+            if (axialDistance({ q: aq, r: ar }, hex) <= template.movement) {
+              targets.add(keyOf(hex))
+            }
           }
         }
       }

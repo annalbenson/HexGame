@@ -1,4 +1,4 @@
-import { axialDistance, CENTER_COORDS, controlsTerritoryBeyondHome, createEmptyPressure, hexKey, ownerOf, territoryCounts, updatePressure } from './board'
+import { axialDistance, CENTER_COORDS, controlsTerritoryBeyondHome, createEmptyPressure, hexKey, ownerOf, tentacleTargets, territoryCounts, updatePressure } from './board'
 import { effectiveStats, getEffectivePower, getTemplate } from './creatures'
 import { buildStartingHand, drawCards } from './deck'
 import type { CreatureInstance, GameState, PlayerId, PlayerState } from './types'
@@ -142,6 +142,39 @@ function moveOrAttack(state: GameState, fromKey: string, q: number, r: number): 
   return { ...state, creatures: nextCreatures, selection: null }
 }
 
+/**
+ * The Big Guy's alternative to moveOrAttack — it never moves (movement: 0),
+ * instead striking the first enemy found in a chosen direction at unlimited
+ * range (see tentacleTargets in board.ts). One-way damage: unlike normal
+ * combat, the target can't hit back, since nothing walked into contact.
+ */
+function tentacleStrike(state: GameState, fromKey: string, q: number, r: number): GameState {
+  const attacker = state.creatures[fromKey]
+  if (!attacker || attacker.owner !== state.activePlayer) return state
+  if (attacker.hasSummoningSickness || attacker.hasActedThisTurn) return state
+
+  const from = coordsFromKey(fromKey)
+  const validTargets = tentacleTargets(from, state.creatures, state.activePlayer)
+  if (!validTargets.some((t) => t.q === q && t.r === r)) return state
+
+  const toKey = hexKey(q, r)
+  const defender = state.creatures[toKey]
+  if (!defender) return state
+
+  const nextCreatures = { ...state.creatures, [fromKey]: { ...attacker, hasActedThisTurn: true } }
+  const updatedDefender: CreatureInstance = {
+    ...defender,
+    currentToughness: defender.currentToughness - getEffectivePower(attacker),
+  }
+  if (updatedDefender.currentToughness > 0) {
+    nextCreatures[toKey] = updatedDefender
+  } else {
+    delete nextCreatures[toKey]
+  }
+
+  return { ...state, creatures: nextCreatures, selection: null }
+}
+
 function endTurn(state: GameState): GameState {
   const nextPlayer = otherPlayer(state.activePlayer)
   const nextTurnNumber = state.turnNumber + 1
@@ -246,6 +279,10 @@ function applyAction(state: GameState, action: GameAction): GameState {
         if (occupant && occupant.owner === state.activePlayer) {
           if (key === selection.hexKey) return { ...state, selection: null }
           return { ...state, selection: { type: 'creature', hexKey: key } }
+        }
+        const selected = state.creatures[selection.hexKey]
+        if (selected && getTemplate(selected.templateId).hasTentacleStrike) {
+          return tentacleStrike(state, selection.hexKey, q, r)
         }
         return moveOrAttack(state, selection.hexKey, q, r)
       }

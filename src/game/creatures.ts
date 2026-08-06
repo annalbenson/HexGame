@@ -12,10 +12,11 @@ export const CREATURE_TEMPLATES: CreatureTemplate[] = [
     cost: 8,
     power: 2,
     toughness: 4,
-    movement: 1,
+    movement: 0,
     growthPerTurn: 1,
     mustCastOnCenter: true,
     triggersCountdown: true,
+    hasTentacleStrike: true,
   },
 ]
 
