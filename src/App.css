@@ -4,12 +4,115 @@
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
-  color: #eee;
+  color: #eee0f5;
   font-family: system-ui, sans-serif;
+  background: radial-gradient(ellipse at top, #1a0f24 0%, #0c0810 70%);
+  min-height: 100vh;
+}
+
+#app-root h1 {
+  margin: 0;
+  color: #ffb347;
+  text-shadow: 0 0 12px rgba(255, 138, 61, 0.4);
+  letter-spacing: 0.05em;
 }
 
 #board-container {
   width: 100%;
   max-width: 900px;
   aspect-ratio: 4 / 3;
+}
+
+#hand-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 900px;
+}
+
+.turn-banner {
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: 1px solid;
+}
+
+.turn-banner.turn-orange {
+  color: #ffb347;
+  border-color: #ffb347;
+  box-shadow: 0 0 14px rgba(255, 138, 61, 0.35);
+}
+
+.turn-banner.turn-purple {
+  color: #d3a6fb;
+  border-color: #b565f5;
+  box-shadow: 0 0 14px rgba(181, 101, 245, 0.35);
+}
+
+#cards {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.card {
+  background: #1e1428;
+  border: 1px solid #4a3466;
+  border-radius: 10px;
+  color: #eee0f5;
+  padding: 0.6rem 0.9rem;
+  min-width: 130px;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.card:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: #ffb347;
+}
+
+.card.selected {
+  border-color: #ffb347;
+  box-shadow: 0 0 12px rgba(255, 179, 71, 0.5);
+}
+
+.card:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.card-name {
+  font-weight: 700;
+  color: #ffb347;
+}
+
+.card-stats {
+  font-size: 0.85rem;
+  color: #c9b3e0;
+}
+
+.card-cost {
+  font-size: 0.8rem;
+  color: #8a5cf6;
+  margin-top: 0.25rem;
+}
+
+#end-turn {
+  background: #b565f5;
+  color: #0c0810;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.4rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(181, 101, 245, 0.4);
+}
+
+#end-turn:hover {
+  background: #c98bff;
 }
