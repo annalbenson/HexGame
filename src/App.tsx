@@ -2,6 +2,7 @@ import { useReducer, useState } from 'react'
 import { HexBoard } from './components/HexBoard'
 import { HandPanel } from './components/HandPanel'
 import { HandSidePanel } from './components/HandSidePanel'
+import { Landing } from './components/Landing'
 import { createInitialState, gameReducer } from './game/gameReducer'
 import { useAiOpponent } from './hooks/useAiOpponent'
 import type { StrategyName } from './sim/strategies'
@@ -21,6 +22,7 @@ const OPPONENT_OPTIONS: { value: OpponentSetting; label: string }[] = [
 const AI_PLAYER = 'orange'
 
 function App() {
+  const [screen, setScreen] = useState<'landing' | 'game'>('landing')
   const [state, dispatch] = useReducer(gameReducer, undefined, createInitialState)
   const [opponent, setOpponent] = useState<OpponentSetting>('none')
   useAiOpponent(state, dispatch, AI_PLAYER, opponent === 'none' ? null : opponent)
@@ -38,6 +40,10 @@ function App() {
   // turn's passed) so switching strategies mid-game can't happen by
   // accident — unlocks again once the game ends or New Game resets it.
   const gameInProgress = !state.winner && (state.turnNumber > 1 || Object.keys(state.creatures).length > 0)
+
+  if (screen === 'landing') {
+    return <Landing onStartGame={() => setScreen('game')} />
+  }
 
   return (
     <div id="app-root">
