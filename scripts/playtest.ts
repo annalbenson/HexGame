@@ -36,14 +36,15 @@ function summarizeMatchup(orangeStrategy: StrategyName, purpleStrategy: Strategy
   const purpleWins = games.filter((g) => g.stats.winner === 'purple').length
   const draws = games.filter((g) => g.stats.winner === 'draw').length
   const elimination = games.filter((g) => g.stats.winReason === 'elimination').length
-  const survival = games.filter((g) => g.stats.winReason === 'survival').length
+  const countdown = games.filter((g) => g.stats.winReason === 'countdown').length
+  const backstop = games.filter((g) => g.stats.winReason === 'backstop').length
   const aborted = games.filter((g) => g.stats.winReason === 'aborted').length
   const avgTurns = avg(games.map((g) => g.stats.turns)).toFixed(1)
   const bigGuySeen = pct(games.filter((g) => g.stats.bigGuyFielded.orange || g.stats.bigGuyFielded.purple).length, total)
 
   console.log(
     `${orangeStrategy.padEnd(8)} vs ${purpleStrategy.padEnd(8)} | orange ${pct(orangeWins, total)} purple ${pct(purpleWins, total)} draw ${pct(draws, total)}` +
-      ` | elim ${pct(elimination, total)} surv ${pct(survival, total)}${aborted > 0 ? ` ABORTED:${aborted}` : ''}` +
+      ` | elim ${pct(elimination, total)} countdown ${pct(countdown, total)} backstop ${pct(backstop, total)}${aborted > 0 ? ` ABORTED:${aborted}` : ''}` +
       ` | avg turns ${avgTurns} | big guy landed ${bigGuySeen}`,
   )
 }
@@ -66,13 +67,16 @@ function main() {
   const abortedTotal = allGames.filter((g) => g.stats.winReason === 'aborted').length
 
   const eliminationTotal = allGames.filter((g) => g.stats.winReason === 'elimination').length
-  const survivalTotal = allGames.filter((g) => g.stats.winReason === 'survival').length
+  const countdownTotal = allGames.filter((g) => g.stats.winReason === 'countdown').length
+  const backstopTotal = allGames.filter((g) => g.stats.winReason === 'backstop').length
   const bigGuyTotal = allGames.filter((g) => g.stats.bigGuyFielded.orange || g.stats.bigGuyFielded.purple).length
 
   console.log('\n--- Overall ---')
   console.log(`Total games: ${totalGames}`)
   console.log(`First-player win rate: ${pct(firstPlayerWins, totalGames)} (orange always goes first — isolates turn-order edge from strategy skill)`)
-  console.log(`Win reason: elimination ${pct(eliminationTotal, totalGames)}  survival-timeout ${pct(survivalTotal, totalGames)}`)
+  console.log(
+    `Win reason: elimination ${pct(eliminationTotal, totalGames)}  countdown-survival ${pct(countdownTotal, totalGames)}  backstop ${pct(backstopTotal, totalGames)}`,
+  )
   console.log(`Avg game length: ${avg(allGames.map((g) => g.stats.turns)).toFixed(1)} turns`)
   console.log(`Big Guy landed in: ${pct(bigGuyTotal, totalGames)} of games`)
   if (abortedTotal > 0) {

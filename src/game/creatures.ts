@@ -15,6 +15,7 @@ export const CREATURE_TEMPLATES: CreatureTemplate[] = [
     movement: 1,
     growthPerTurn: 1,
     requiresCenterControl: true,
+    triggersCountdown: true,
   },
 ]
 

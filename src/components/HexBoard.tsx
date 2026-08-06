@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { CREATURE_ART } from '../game/art'
 import { axialDistance, boardBounds, CENTER_COORDS, createGrid, hexKey, keyOf, ownerOf, polygonPoints, Tile, HOME_COORDS } from '../game/board'
 import { getEffectivePower, getTemplate } from '../game/creatures'
+import { BIG_GUY_COUNTDOWN } from '../game/gameReducer'
 import type { GameAction } from '../game/gameReducer'
 import type { GameState } from '../game/types'
 
@@ -157,6 +158,11 @@ export function HexBoard({ state, dispatch }: HexBoardProps) {
             {creature.expiresOnTurn !== undefined && (
               <text textAnchor="middle" y={radius + 14} fontSize={10} fontWeight="700" fill="#ffd24a">
                 {Math.max(0, creature.expiresOnTurn - state.turnNumber)} turns left
+              </text>
+            )}
+            {template.triggersCountdown && state.bigGuyCastTurn[creature.owner] !== null && (
+              <text textAnchor="middle" y={radius + 14} fontSize={10} fontWeight="700" fill="#ff6b6b">
+                opponent wins in {Math.max(0, BIG_GUY_COUNTDOWN - (state.turnNumber - state.bigGuyCastTurn[creature.owner]!))}
               </text>
             )}
           </motion.g>

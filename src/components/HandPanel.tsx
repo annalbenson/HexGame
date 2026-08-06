@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { CREATURE_ART } from '../game/art'
 import { controlsTerritoryBeyondHome, territoryCounts } from '../game/board'
 import { effectiveStats, getTemplate } from '../game/creatures'
+import { BIG_GUY_COUNTDOWN } from '../game/gameReducer'
 import type { GameAction } from '../game/gameReducer'
 import type { GameState, PlayerId } from '../game/types'
 
@@ -14,12 +15,20 @@ const PLAYER_LABEL: Record<PlayerId, string> = { orange: 'Orange', purple: 'Purp
 
 function winMessage(state: GameState): string {
   const isDraw = state.winner === 'draw'
+  const winner = state.winner as PlayerId
+  const loser: PlayerId = winner === 'orange' ? 'purple' : 'orange'
+
   if (state.winReason === 'elimination') {
-    return isDraw ? 'Both sides were wiped out — draw!' : `${PLAYER_LABEL[state.winner as PlayerId]} wins by eliminating the opposing forces!`
+    return isDraw ? 'Both sides were wiped out — draw!' : `${PLAYER_LABEL[winner]} wins by eliminating the opposing forces!`
+  }
+  if (state.winReason === 'countdown') {
+    return isDraw
+      ? 'Both Big Guys ran out their clocks on the same turn — draw!'
+      : `${PLAYER_LABEL[winner]} outlasts ${PLAYER_LABEL[loser]}'s Big Guy and wins by survival!`
   }
   return isDraw
-    ? 'Territory was tied when the countdown hit turn 30 — draw!'
-    : `${PLAYER_LABEL[state.winner as PlayerId]} wins by holding more territory when the countdown hit turn 30!`
+    ? 'Neither side gambled on The Big Guy, and territory was tied when the standoff timed out — draw!'
+    : `Neither side gambled on The Big Guy — ${PLAYER_LABEL[winner]} wins by holding more territory when the standoff timed out.`
 }
 
 export function HandPanel({ state, dispatch }: HandPanelProps) {
@@ -30,6 +39,13 @@ export function HandPanel({ state, dispatch }: HandPanelProps) {
     () => controlsTerritoryBeyondHome(state.activePlayer, state.creatures),
     [state.activePlayer, state.creatures],
   )
+  const activeCountdowns = (['orange', 'purple'] as PlayerId[])
+    .filter((casterId) => state.bigGuyCastTurn[casterId] !== null)
+    .map((casterId) => {
+      const opponent: PlayerId = casterId === 'orange' ? 'purple' : 'orange'
+      const remaining = Math.max(0, BIG_GUY_COUNTDOWN - (state.turnNumber - state.bigGuyCastTurn[casterId]!))
+      return { casterId, opponent, remaining }
+    })
 
   if (state.winner) {
     return (
@@ -50,6 +66,15 @@ export function HandPanel({ state, dispatch }: HandPanelProps) {
         <span className="territory-count territory-purple">Purple {territory.purple}</span>
         {leader && <span className="territory-leader">{PLAYER_LABEL[leader]} holds the mana edge (+1/turn)</span>}
       </div>
+      {activeCountdowns.length > 0 && (
+        <div id="big-guy-countdown">
+          {activeCountdowns.map(({ casterId, opponent, remaining }) => (
+            <span key={casterId} className="countdown-warning">
+              {PLAYER_LABEL[opponent]} wins in {remaining} {remaining === 1 ? 'turn' : 'turns'} unless {PLAYER_LABEL[casterId]}'s Big Guy finishes the job
+            </span>
+          ))}
+        </div>
+      )}
       <div id="deck-status">
         {(['orange', 'purple'] as PlayerId[]).map((id) => (
           <span key={id} className={`deck-count deck-${id}`}>

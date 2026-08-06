@@ -106,6 +106,18 @@
   font-style: italic;
 }
 
+#big-guy-countdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+}
+
+.countdown-warning {
+  color: #ff6b6b;
+  font-weight: 700;
+}
+
 #deck-status {
   display: flex;
   gap: 1.5rem;

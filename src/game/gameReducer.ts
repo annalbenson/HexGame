@@ -7,8 +7,10 @@ const STARTING_MANA = 1
 const MANA_INCOME = 1
 const DRAW_PER_TURN = 1
 const TERRITORY_ADVANTAGE_BONUS = 1
-/** Turn at which, if nobody's been eliminated, the game resolves by territory — a nod to StarCraft's "survive for 30 minutes" missions. */
-const SURVIVAL_COUNTDOWN_TURN = 30
+/** Turns after The Big Guy is cast before its owner's opponent wins outright by having survived it — the "gamble" arc's actual payoff/risk. Exported for the board's live countdown display. */
+export const BIG_GUY_COUNTDOWN = 6
+/** Backstop only — if neither player ever casts The Big Guy, the game would otherwise never end. Deliberately far past when a real game normally resolves; territory tiebreak, same as the old flat survival rule it replaces. */
+const BACKSTOP_TURN = 45
 /** How many turns a capturesTerrain creature (Magic Mushroom) lives before withering — claimed ground has to be actively maintained, not planted once and forgotten. */
 const MUSHROOM_LIFESPAN = 8
 
@@ -32,6 +34,7 @@ export function createInitialState(): GameState {
     creatures: {},
     selection: null,
     centerControlAtTurnStart: null,
+    bigGuyCastTurn: { orange: null, purple: null },
     winner: null,
     winReason: null,
   }
@@ -81,6 +84,9 @@ function castCreature(state: GameState, instanceId: string, q: number, r: number
     },
     creatures: { ...state.creatures, [key]: newCreature },
     selection: null,
+    bigGuyCastTurn: template.triggersCountdown
+      ? { ...state.bigGuyCastTurn, [state.activePlayer]: state.turnNumber }
+      : state.bigGuyCastTurn,
   }
 }
 
@@ -168,15 +174,21 @@ function endTurn(state: GameState): GameState {
 
 interface WinResult {
   winner: PlayerId | 'draw'
-  reason: 'elimination' | 'survival'
+  reason: 'elimination' | 'countdown' | 'backstop'
 }
 
 /**
- * Elimination: a player who has fielded at least one creature but currently
- * has none left loses — `hasFielded` distinguishes that from simply not
- * having played anything yet (which shouldn't end the game). Survival: if
- * nobody's been eliminated by SURVIVAL_COUNTDOWN_TURN, whoever holds more
- * territory wins; an exact tie is a draw.
+ * Three ways a game ends. Elimination: a player who has fielded at least one
+ * creature but currently has none left loses — `hasFielded` distinguishes
+ * that from simply not having played anything yet (which shouldn't end the
+ * game). This applies at any point, before or after The Big Guy. Countdown:
+ * casting The Big Guy starts a BIG_GUY_COUNTDOWN-turn clock against its
+ * owner — if the opponent hasn't been wiped out by the time it expires, the
+ * opponent wins outright, no territory involved. If both players' clocks
+ * expire on the same turn, it's a draw. Backstop: if *neither* player ever
+ * casts The Big Guy, nothing above can ever resolve the game — BACKSTOP_TURN
+ * is a deliberately distant fallback (territory tiebreak) purely to close
+ * that edge case; it should be invisible in any game where someone gambles.
  */
 function checkWinner(state: GameState): WinResult | null {
   const counts: Record<PlayerId, number> = { orange: 0, purple: 0 }
@@ -188,11 +200,19 @@ function checkWinner(state: GameState): WinResult | null {
   if (orangeEliminated) return { winner: 'purple', reason: 'elimination' }
   if (purpleEliminated) return { winner: 'orange', reason: 'elimination' }
 
-  if (state.turnNumber >= SURVIVAL_COUNTDOWN_TURN) {
+  const survivors = (['orange', 'purple'] as PlayerId[]).filter((casterId) => {
+    const castTurn = state.bigGuyCastTurn[casterId]
+    return castTurn !== null && state.turnNumber - castTurn >= BIG_GUY_COUNTDOWN
+  }).map(otherPlayer)
+  if (survivors.length === 2) return { winner: 'draw', reason: 'countdown' }
+  if (survivors.length === 1) return { winner: survivors[0], reason: 'countdown' }
+
+  const neitherCastBigGuy = state.bigGuyCastTurn.orange === null && state.bigGuyCastTurn.purple === null
+  if (neitherCastBigGuy && state.turnNumber >= BACKSTOP_TURN) {
     const territory = territoryCounts(state.creatures)
-    if (territory.orange > territory.purple) return { winner: 'orange', reason: 'survival' }
-    if (territory.purple > territory.orange) return { winner: 'purple', reason: 'survival' }
-    return { winner: 'draw', reason: 'survival' }
+    if (territory.orange > territory.purple) return { winner: 'orange', reason: 'backstop' }
+    if (territory.purple > territory.orange) return { winner: 'purple', reason: 'backstop' }
+    return { winner: 'draw', reason: 'backstop' }
   }
   return null
 }

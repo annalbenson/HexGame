@@ -13,6 +13,8 @@ export interface CreatureTemplate {
   requiresCenterControl?: boolean
   /** If set, this creature claims territory within 1 hex of itself for as long as it's alive — see `ownerOf` in board.ts. */
   capturesTerrain?: boolean
+  /** If set, casting this starts its owner's opponent's win-by-survival countdown — see `bigGuyCastTurn` on GameState. */
+  triggersCountdown?: boolean
 }
 
 export interface CreatureInstance {
@@ -53,6 +55,8 @@ export interface GameState {
   selection: Selection
   /** Who occupied the center hex when the active player's turn began — not live, so you can't take the center and cast in the same turn. */
   centerControlAtTurnStart: PlayerId | null
+  /** Turn number each player cast The Big Guy on, if they have — starts that player's opponent's win-by-survival countdown. Null until cast. */
+  bigGuyCastTurn: Record<PlayerId, number | null>
   winner: PlayerId | 'draw' | null
-  winReason: 'elimination' | 'survival' | null
+  winReason: 'elimination' | 'countdown' | 'backstop' | null
 }

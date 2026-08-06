@@ -5,12 +5,12 @@ import { enumerateIntents, type Intent } from './intents'
 import { STRATEGIES, type StrategyName } from './strategies'
 
 const MAX_ACTIONS_PER_TURN = 20
-/** Hard backstop, well past the game's own turn-30 survival resolution — if this ever fires, something in the reducer failed to produce a winner, not a real game outcome. */
+/** Hard safety net, well past the game's own BACKSTOP_TURN fallback — if this ever fires, something in the reducer failed to produce a winner, not a real game outcome. */
 const MAX_TURNS_SAFETY = 200
 
 export interface GameStats {
   winner: PlayerId | 'draw'
-  winReason: 'elimination' | 'survival' | 'aborted'
+  winReason: 'elimination' | 'countdown' | 'backstop' | 'aborted'
   turns: number
   firstPlayer: PlayerId
   territory: Record<PlayerId, number>
@@ -77,7 +77,7 @@ export function simulateGame(strategies: Record<PlayerId, StrategyName>): GameSt
 
   return {
     winner: aborted ? 'draw' : (state.winner ?? 'draw'),
-    winReason: aborted ? 'aborted' : (state.winReason ?? 'survival'),
+    winReason: aborted ? 'aborted' : (state.winReason ?? 'backstop'),
     turns: state.turnNumber,
     firstPlayer,
     territory,
