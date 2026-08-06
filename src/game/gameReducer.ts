@@ -10,7 +10,7 @@ const TERRITORY_ADVANTAGE_BONUS = 1
 /** Turn at which, if nobody's been eliminated, the game resolves by territory — a nod to StarCraft's "survive for 30 minutes" missions. */
 const SURVIVAL_COUNTDOWN_TURN = 30
 /** How many turns a capturesTerrain creature (Magic Mushroom) lives before withering — claimed ground has to be actively maintained, not planted once and forgotten. */
-const MUSHROOM_LIFESPAN = 5
+const MUSHROOM_LIFESPAN = 8
 
 export type GameAction =
   | { type: 'SELECT_CARD'; instanceId: string }

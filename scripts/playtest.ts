@@ -65,9 +65,16 @@ function main() {
   const firstPlayerWins = allGames.filter((g) => g.stats.winner === g.stats.firstPlayer).length
   const abortedTotal = allGames.filter((g) => g.stats.winReason === 'aborted').length
 
+  const eliminationTotal = allGames.filter((g) => g.stats.winReason === 'elimination').length
+  const survivalTotal = allGames.filter((g) => g.stats.winReason === 'survival').length
+  const bigGuyTotal = allGames.filter((g) => g.stats.bigGuyFielded.orange || g.stats.bigGuyFielded.purple).length
+
   console.log('\n--- Overall ---')
   console.log(`Total games: ${totalGames}`)
   console.log(`First-player win rate: ${pct(firstPlayerWins, totalGames)} (orange always goes first — isolates turn-order edge from strategy skill)`)
+  console.log(`Win reason: elimination ${pct(eliminationTotal, totalGames)}  survival-timeout ${pct(survivalTotal, totalGames)}`)
+  console.log(`Avg game length: ${avg(allGames.map((g) => g.stats.turns)).toFixed(1)} turns`)
+  console.log(`Big Guy landed in: ${pct(bigGuyTotal, totalGames)} of games`)
   if (abortedTotal > 0) {
     console.log(`⚠ ${abortedTotal} game(s) hit the safety cap without the reducer ever producing a winner — investigate before trusting these results.`)
   }
