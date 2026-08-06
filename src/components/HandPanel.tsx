@@ -33,11 +33,11 @@ function winMessage(state: GameState): string {
 
 export function HandPanel({ state, dispatch }: HandPanelProps) {
   const active = state.players[state.activePlayer]
-  const territory = useMemo(() => territoryCounts(state.creatures), [state.creatures])
+  const territory = useMemo(() => territoryCounts(state.territoryPressure), [state.territoryPressure])
   const leader: PlayerId | null = territory.orange > territory.purple ? 'orange' : territory.purple > territory.orange ? 'purple' : null
   const hasTerritory = useMemo(
-    () => controlsTerritoryBeyondHome(state.activePlayer, state.creatures),
-    [state.activePlayer, state.creatures],
+    () => controlsTerritoryBeyondHome(state.activePlayer, state.territoryPressure),
+    [state.activePlayer, state.territoryPressure],
   )
   const activeCountdowns = (['orange', 'purple'] as PlayerId[])
     .filter((casterId) => state.bigGuyCastTurn[casterId] !== null)

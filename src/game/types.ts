@@ -50,6 +50,8 @@ export interface GameState {
   turnNumber: number
   players: Record<PlayerId, PlayerState>
   creatures: Record<string, CreatureInstance>
+  /** Accumulated territory pressure per hex per player — see `updatePressure` in board.ts. Ownership is read off this, not recomputed live from creature positions. */
+  territoryPressure: Record<string, Record<PlayerId, number>>
   selection: Selection
   /** Who occupied the center hex when the active player's turn began — not live, so you can't take the center and cast in the same turn. */
   centerControlAtTurnStart: PlayerId | null

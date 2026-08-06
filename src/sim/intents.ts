@@ -30,12 +30,12 @@ function castTargetsFor(state: GameState, playerId: PlayerId, card: CardInstance
   const player = state.players[playerId]
   if (player.mana < template.cost) return []
   if (template.requiresCenterControl && state.centerControlAtTurnStart !== playerId) return []
-  if (!template.capturesTerrain && !controlsTerritoryBeyondHome(playerId, state.creatures)) return []
+  if (!template.capturesTerrain && !controlsTerritoryBeyondHome(playerId, state.territoryPressure)) return []
 
   const targets: { q: number; r: number }[] = []
   for (const hex of createGrid()) {
     if (state.creatures[hexKey(hex.q, hex.r)]) continue
-    if (ownerOf(hex, state.creatures) !== playerId) continue
+    if (ownerOf(hex, state.territoryPressure) !== playerId) continue
     targets.push({ q: hex.q, r: hex.r })
   }
   return targets

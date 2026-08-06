@@ -38,7 +38,7 @@ export function HexBoard({ state, dispatch }: HexBoardProps) {
     const targets = new Set<string>()
     if (state.selection?.type === 'card') {
       for (const hex of hexes) {
-        if (ownerOf(hex, state.creatures) === state.activePlayer && !state.creatures[keyOf(hex)]) {
+        if (ownerOf(hex, state.territoryPressure) === state.activePlayer && !state.creatures[keyOf(hex)]) {
           targets.add(keyOf(hex))
         }
       }
@@ -69,35 +69,70 @@ export function HexBoard({ state, dispatch }: HexBoardProps) {
     >
       {hexes.map((hex) => {
         const key = keyOf(hex)
-        const owner = ownerOf(hex, state.creatures)
-        const isHome = key === hexKey(HOME_COORDS.orange.q, HOME_COORDS.orange.r) || key === hexKey(HOME_COORDS.purple.q, HOME_COORDS.purple.r)
+        const isHomeOrange = key === hexKey(HOME_COORDS.orange.q, HOME_COORDS.orange.r)
+        const isHomePurple = key === hexKey(HOME_COORDS.purple.q, HOME_COORDS.purple.r)
+        const isHome = isHomeOrange || isHomePurple
         const isCenter = key === hexKey(CENTER_COORDS.q, CENTER_COORDS.r)
         const isTarget = validTargets.has(key)
         const isSelected = state.selection?.type === 'creature' && state.selection.hexKey === key
+        const owner = ownerOf(hex, state.territoryPressure)
+
+        const pressure = state.territoryPressure[key] ?? { orange: 0, purple: 0 }
+        const total = pressure.orange + pressure.purple
+        const points = polygonPoints(hex)
+
+        // Split-fill: the divider's position (not a color blend) carries the
+        // pressure ratio, plus an explicit boundary line — legible without
+        // needing to distinguish orange from purple by hue or shade at all.
+        const xs = hex.corners.map((c) => c.x)
+        const ys = hex.corners.map((c) => c.y)
+        const minX = Math.min(...xs)
+        const maxX = Math.max(...xs)
+        const minY = Math.min(...ys)
+        const maxY = Math.max(...ys)
+        const dividerX = total > 0 ? minX + (maxX - minX) * (pressure.orange / total) : minX
+        const clipId = `hexfill-${key.replace(',', '_')}`
 
         return (
-          <motion.polygon
+          <motion.g
             key={key}
-            points={polygonPoints(hex)}
-            fill={OWNER_FILL[owner ?? 'neutral']}
-            stroke={
-              isSelected
-                ? '#ffb347'
-                : isTarget
-                  ? '#ffd9a0'
-                  : isHome
-                    ? '#ffffff'
-                    : isCenter
-                      ? '#ffd24a'
-                      : OWNER_STROKE[owner ?? 'neutral']
-            }
-            strokeWidth={isSelected ? 3 : isTarget ? 2 : isHome || isCenter ? 2.5 : 1.5}
             initial={false}
             animate={{ opacity: 1 }}
             whileHover={isTarget ? { filter: 'brightness(1.3)' } : undefined}
             style={{ cursor: isTarget ? 'pointer' : 'default' }}
             onClick={() => dispatch({ type: 'CLICK_HEX', q: hex.q, r: hex.r })}
-          />
+          >
+            {isHome || total === 0 ? (
+              <polygon points={points} fill={isHome ? OWNER_FILL[isHomeOrange ? 'orange' : 'purple'] : OWNER_FILL.neutral} />
+            ) : (
+              <>
+                <clipPath id={clipId}>
+                  <polygon points={points} />
+                </clipPath>
+                <g clipPath={`url(#${clipId})`}>
+                  <rect x={minX} y={minY} width={maxX - minX} height={maxY - minY} fill={OWNER_FILL.orange} />
+                  <rect x={dividerX} y={minY} width={maxX - dividerX} height={maxY - minY} fill={OWNER_FILL.purple} />
+                </g>
+                <line x1={dividerX} y1={minY} x2={dividerX} y2={maxY} stroke="#eee0f5" strokeWidth={2} clipPath={`url(#${clipId})`} />
+              </>
+            )}
+            <polygon
+              points={points}
+              fill="none"
+              stroke={
+                isSelected
+                  ? '#ffb347'
+                  : isTarget
+                    ? '#ffd9a0'
+                    : isHome
+                      ? '#ffffff'
+                      : isCenter
+                        ? '#ffd24a'
+                        : OWNER_STROKE[owner ?? 'neutral']
+              }
+              strokeWidth={isSelected ? 3 : isTarget ? 2 : isHome || isCenter ? 2.5 : 1.5}
+            />
+          </motion.g>
         )
       })}
       {Object.entries(state.creatures).map(([key, creature]) => {

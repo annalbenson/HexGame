@@ -83,37 +83,78 @@ function homeOwnerOf(coords: { q: number; r: number }): PlayerId | null {
   return null
 }
 
-/**
- * Live territory control. Nobody starts with any territory beyond their own
- * home hex — everything else is neutral until a player's Magic Mushroom
- * claims it (self + 6 neighbors), and reverts to neutral the instant that
- * mushroom dies (mushrooms have a limited lifespan — see MUSHROOM_LIFESPAN
- * in gameReducer.ts). So territory has to be actively established and then
- * maintained, not claimed once and forgotten. Recomputed fresh from current
- * creature positions every call, no separate bookkeeping needed. Home hexes
- * are checked first and can never be captured by an enemy mushroom's claim
- * radius, even if it reaches into range. If mushrooms from both owners reach
- * the same hex, it's contested/neutral.
- */
-export function ownerOf(coords: { q: number; r: number }, creatures: Record<string, CreatureInstance>): PlayerId | null {
-  const home = homeOwnerOf(coords)
-  if (home) return home
+/** Accumulated per-hex territory pressure — see `updatePressure`. Keyed by hexKey; every grid hex has an entry once `createEmptyPressure` has run. */
+export type TerritoryPressure = Record<string, Record<PlayerId, number>>
 
-  const claims = new Set<PlayerId>()
+export const PRESSURE_PER_TURN = 2
+export const PRESSURE_DECAY_PER_TURN = 1
+export const PRESSURE_CAP = 6
+
+export function createEmptyPressure(): TerritoryPressure {
+  const pressure: TerritoryPressure = {}
+  for (const hex of createGrid()) {
+    pressure[hexKey(hex.q, hex.r)] = { orange: 0, purple: 0 }
+  }
+  return pressure
+}
+
+function mushroomOwnersInRange(coords: { q: number; r: number }, creatures: Record<string, CreatureInstance>): Set<PlayerId> {
+  const owners = new Set<PlayerId>()
   for (const [key, creature] of Object.entries(creatures)) {
     if (!getTemplate(creature.templateId).capturesTerrain) continue
     const [mq, mr] = key.split(',').map(Number)
-    if (axialDistance(coords, { q: mq, r: mr }) <= 1) claims.add(creature.owner)
+    if (axialDistance(coords, { q: mq, r: mr }) <= 1) owners.add(creature.owner)
   }
-  if (claims.size === 1) return [...claims][0]
+  return owners
+}
+
+/**
+ * One turn's worth of pressure accumulation, called once per `endTurn`.
+ * Every hex within 1 of a live Magic Mushroom gains PRESSURE_PER_TURN for
+ * that Mushroom's owner (capped at PRESSURE_CAP, so a long-held hex plateaus
+ * rather than growing forever); every hex *not* currently reinforced decays
+ * by PRESSURE_DECAY_PER_TURN toward 0 instead of reverting instantly. Decay
+ * being slower than growth means losing a Mushroom in combat drains a hex's
+ * claim over a few turns rather than forfeiting it the instant it dies —
+ * the direct fix for mushrooms "timing out" felt too abrupt.
+ */
+export function updatePressure(pressure: TerritoryPressure, creatures: Record<string, CreatureInstance>): TerritoryPressure {
+  const next: TerritoryPressure = {}
+  for (const hex of createGrid()) {
+    const key = hexKey(hex.q, hex.r)
+    const current = pressure[key] ?? { orange: 0, purple: 0 }
+    const reinforcedBy = mushroomOwnersInRange(hex, creatures)
+    next[key] = {
+      orange: reinforcedBy.has('orange') ? Math.min(PRESSURE_CAP, current.orange + PRESSURE_PER_TURN) : Math.max(0, current.orange - PRESSURE_DECAY_PER_TURN),
+      purple: reinforcedBy.has('purple') ? Math.min(PRESSURE_CAP, current.purple + PRESSURE_PER_TURN) : Math.max(0, current.purple - PRESSURE_DECAY_PER_TURN),
+    }
+  }
+  return next
+}
+
+/**
+ * Territory control, read off accumulated pressure (see `updatePressure`) —
+ * not a live recompute from creature positions, since pressure has to
+ * persist and decay across turns rather than snapping the instant a
+ * Mushroom dies. Home hexes are checked first and are unconditional,
+ * regardless of pressure. Equal (including 0-0, untouched) pressure is
+ * contested/neutral.
+ */
+export function ownerOf(coords: { q: number; r: number }, pressure: TerritoryPressure): PlayerId | null {
+  const home = homeOwnerOf(coords)
+  if (home) return home
+
+  const p = pressure[hexKey(coords.q, coords.r)] ?? { orange: 0, purple: 0 }
+  if (p.orange > p.purple) return 'orange'
+  if (p.purple > p.orange) return 'purple'
   return null
 }
 
 /** How many hexes each player currently controls (see `ownerOf`) — the mana-income tiebreaker. */
-export function territoryCounts(creatures: Record<string, CreatureInstance>): Record<PlayerId, number> {
+export function territoryCounts(pressure: TerritoryPressure): Record<PlayerId, number> {
   const counts: Record<PlayerId, number> = { orange: 0, purple: 0 }
   for (const hex of createGrid()) {
-    const owner = ownerOf(hex, creatures)
+    const owner = ownerOf(hex, pressure)
     if (owner) counts[owner]++
   }
   return counts
@@ -126,11 +167,11 @@ export function territoryCounts(creatures: Record<string, CreatureInstance>): Re
  * this specifically asks whether they've established ground with a live
  * Mushroom.
  */
-export function controlsTerritoryBeyondHome(playerId: PlayerId, creatures: Record<string, CreatureInstance>): boolean {
+export function controlsTerritoryBeyondHome(playerId: PlayerId, pressure: TerritoryPressure): boolean {
   const home = HOME_COORDS[playerId]
   for (const hex of createGrid()) {
     if (hex.q === home.q && hex.r === home.r) continue
-    if (ownerOf(hex, creatures) === playerId) return true
+    if (ownerOf(hex, pressure) === playerId) return true
   }
   return false
 }

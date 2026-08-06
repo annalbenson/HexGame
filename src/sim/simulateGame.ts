@@ -63,7 +63,7 @@ export function simulateGame(strategies: Record<PlayerId, StrategyName>): GameSt
     turnsElapsed++
   }
 
-  const territory = territoryCounts(state.creatures)
+  const territory = territoryCounts(state.territoryPressure)
   const cardsBurned: Record<PlayerId, number> = { orange: 0, purple: 0 }
   for (const playerId of ['orange', 'purple'] as PlayerId[]) {
     const player = state.players[playerId]

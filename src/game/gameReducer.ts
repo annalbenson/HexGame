@@ -1,4 +1,4 @@
-import { axialDistance, CENTER_COORDS, controlsTerritoryBeyondHome, hexKey, ownerOf, territoryCounts } from './board'
+import { axialDistance, CENTER_COORDS, controlsTerritoryBeyondHome, createEmptyPressure, hexKey, ownerOf, territoryCounts, updatePressure } from './board'
 import { effectiveStats, getEffectivePower, getTemplate } from './creatures'
 import { buildStartingHand, drawCards } from './deck'
 import type { CreatureInstance, GameState, PlayerId, PlayerState } from './types'
@@ -30,6 +30,7 @@ export function createInitialState(): GameState {
     turnNumber: 1,
     players: { orange: createPlayerState('orange'), purple: createPlayerState('purple') },
     creatures: {},
+    territoryPressure: createEmptyPressure(),
     selection: null,
     centerControlAtTurnStart: null,
     bigGuyCastTurn: { orange: null, purple: null },
@@ -50,7 +51,7 @@ function coordsFromKey(key: string): { q: number; r: number } {
 function castCreature(state: GameState, instanceId: string, q: number, r: number): GameState {
   const key = hexKey(q, r)
   if (state.creatures[key]) return state
-  if (ownerOf({ q, r }, state.creatures) !== state.activePlayer) return state
+  if (ownerOf({ q, r }, state.territoryPressure) !== state.activePlayer) return state
 
   const player = state.players[state.activePlayer]
   const card = player.hand.find((c) => c.instanceId === instanceId)
@@ -59,7 +60,7 @@ function castCreature(state: GameState, instanceId: string, q: number, r: number
   const template = getTemplate(card.templateId)
   if (player.mana < template.cost) return state
   if (template.requiresCenterControl && state.centerControlAtTurnStart !== state.activePlayer) return state
-  if (!template.capturesTerrain && !controlsTerritoryBeyondHome(state.activePlayer, state.creatures)) return state
+  if (!template.capturesTerrain && !controlsTerritoryBeyondHome(state.activePlayer, state.territoryPressure)) return state
 
   const { toughness, bonus } = effectiveStats(template, state.turnNumber)
   const newCreature: CreatureInstance = {
@@ -144,11 +145,13 @@ function endTurn(state: GameState): GameState {
     }
   }
 
+  const nextPressure = updatePressure(state.territoryPressure, nextCreatures)
+
   const incomingPlayer = state.players[nextPlayer]
   const { deck, hand } = drawCards(incomingPlayer.deck, incomingPlayer.hand, DRAW_PER_TURN)
   const centerOccupant = nextCreatures[hexKey(CENTER_COORDS.q, CENTER_COORDS.r)]
 
-  const counts = territoryCounts(nextCreatures)
+  const counts = territoryCounts(nextPressure)
   const territoryBonus = counts[nextPlayer] > counts[state.activePlayer] ? TERRITORY_ADVANTAGE_BONUS : 0
 
   return {
@@ -160,6 +163,7 @@ function endTurn(state: GameState): GameState {
       [nextPlayer]: { ...incomingPlayer, mana: incomingPlayer.mana + MANA_INCOME + territoryBonus, deck, hand },
     },
     creatures: nextCreatures,
+    territoryPressure: nextPressure,
     selection: null,
     centerControlAtTurnStart: centerOccupant?.owner ?? null,
   }
@@ -202,7 +206,7 @@ function checkWinner(state: GameState): WinResult | null {
 
   const neitherCastBigGuy = state.bigGuyCastTurn.orange === null && state.bigGuyCastTurn.purple === null
   if (neitherCastBigGuy && state.turnNumber >= BACKSTOP_TURN) {
-    const territory = territoryCounts(state.creatures)
+    const territory = territoryCounts(state.territoryPressure)
     if (territory.orange > territory.purple) return { winner: 'orange', reason: 'backstop' }
     if (territory.purple > territory.orange) return { winner: 'purple', reason: 'backstop' }
     return { winner: 'draw', reason: 'backstop' }
