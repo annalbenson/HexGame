@@ -17,15 +17,26 @@ export interface CreatureInstance {
   hasActedThisTurn: boolean
 }
 
+export interface CardInstance {
+  instanceId: string
+  templateId: string
+}
+
+export interface PlayerState {
+  mana: number
+  deck: CardInstance[]
+  hand: CardInstance[]
+}
+
 export type Selection =
-  | { type: 'card'; templateId: string }
+  | { type: 'card'; instanceId: string }
   | { type: 'creature'; hexKey: string }
   | null
 
 export interface GameState {
   activePlayer: PlayerId
   turnNumber: number
-  mana: Record<PlayerId, number>
+  players: Record<PlayerId, PlayerState>
   creatures: Record<string, CreatureInstance>
   selection: Selection
 }

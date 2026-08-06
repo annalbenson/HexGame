@@ -52,6 +52,27 @@
   box-shadow: 0 0 14px rgba(181, 101, 245, 0.35);
 }
 
+#deck-status {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.8rem;
+  color: #9c86b8;
+}
+
+.deck-count.deck-orange {
+  color: #d99260;
+}
+
+.deck-count.deck-purple {
+  color: #a586c9;
+}
+
+.empty-hand {
+  color: #6a5885;
+  font-style: italic;
+  padding: 0.6rem;
+}
+
 #cards {
   display: flex;
   gap: 0.75rem;
