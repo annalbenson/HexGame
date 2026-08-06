@@ -12,6 +12,11 @@ export const Tile = defineHex({
 
 export type HexHandle = InstanceType<typeof Tile>
 
+/**
+ * Homes sit at opposite corners of the hex-shaped board. In flat-top hex pixel
+ * space these two corners land top-left and bottom-right, so the board splits
+ * along a genuine diagonal rather than a left/right or top/bottom line.
+ */
 export const HOME_COORDS: Record<PlayerId, { q: number; r: number }> = {
   orange: { q: -BOARD_RADIUS, r: 0 },
   purple: { q: BOARD_RADIUS, r: 0 },
@@ -40,11 +45,19 @@ export function axialDistance(a: { q: number; r: number }, b: { q: number; r: nu
   return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2
 }
 
-/** Which player's territory a hex belongs to, based on proximity to each home. Ties are neutral. */
+/**
+ * Which player's territory a hex belongs to, based on proximity to each home.
+ * Homes sit at q = -BOARD_RADIUS / +BOARD_RADIUS, so hexes equidistant from
+ * both homes always share that same q sign except for the exact board center
+ * (q = 0), which is left as neutral, contested ground. This gives each player
+ * an equal half of the board at the start, split diagonally by the seam.
+ */
 export function ownerOf(coords: { q: number; r: number }): PlayerId | null {
   const dOrange = axialDistance(coords, HOME_COORDS.orange)
   const dPurple = axialDistance(coords, HOME_COORDS.purple)
   if (dOrange < dPurple) return 'orange'
   if (dPurple < dOrange) return 'purple'
+  if (coords.q < 0) return 'orange'
+  if (coords.q > 0) return 'purple'
   return null
 }
