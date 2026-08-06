@@ -10,10 +10,10 @@ function App() {
   return (
     <div id="app-root">
       <h1>HexGame</h1>
-      <HandPanel state={state} dispatch={dispatch} />
       <div id="board-container">
         <HexBoard state={state} dispatch={dispatch} />
       </div>
+      <HandPanel state={state} dispatch={dispatch} />
     </div>
   )
 }

@@ -9,6 +9,10 @@ export interface CreatureTemplate {
   movement: number
   /** If set, this template's effective power/toughness grows by this much per turn elapsed before it's cast. */
   growthPerTurn?: number
+  /** If set, this template can only be cast while its owner held the center hex at the start of the current turn. */
+  requiresCenterControl?: boolean
+  /** If set, this creature claims territory within 1 hex of itself for as long as it's alive — see `ownerOf` in board.ts. */
+  capturesTerrain?: boolean
 }
 
 export interface CreatureInstance {
@@ -19,6 +23,8 @@ export interface CreatureInstance {
   hasActedThisTurn: boolean
   /** Power bonus locked in at cast time, for templates with growthPerTurn. */
   bonusPower?: number
+  /** Turn number at which this creature automatically dies — currently only set for capturesTerrain creatures, so claimed ground has to be actively maintained. */
+  expiresOnTurn?: number
 }
 
 export interface CardInstance {
@@ -30,6 +36,8 @@ export interface PlayerState {
   mana: number
   deck: CardInstance[]
   hand: CardInstance[]
+  /** True once this player has ever successfully cast a creature — distinguishes "not eliminated, just hasn't played yet" from a real board wipe. */
+  hasFielded: boolean
 }
 
 export type Selection =
@@ -43,4 +51,8 @@ export interface GameState {
   players: Record<PlayerId, PlayerState>
   creatures: Record<string, CreatureInstance>
   selection: Selection
+  /** Who occupied the center hex when the active player's turn began — not live, so you can't take the center and cast in the same turn. */
+  centerControlAtTurnStart: PlayerId | null
+  winner: PlayerId | 'draw' | null
+  winReason: 'elimination' | 'survival' | null
 }

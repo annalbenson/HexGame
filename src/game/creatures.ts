@@ -1,18 +1,20 @@
 import type { CreatureInstance, CreatureTemplate } from './types'
 
 export const CREATURE_TEMPLATES: CreatureTemplate[] = [
-  { id: 'skitterling', name: 'Skitterling', cost: 1, power: 1, toughness: 1, movement: 3 },
-  { id: 'spore-crawler', name: 'Spore Crawler', cost: 2, power: 2, toughness: 3, movement: 1 },
-  { id: 'wraithling', name: 'Wraithling', cost: 3, power: 3, toughness: 2, movement: 2 },
+  { id: 'skitterling', name: 'Magic Mushroom', cost: 1, power: 1, toughness: 1, movement: 0, capturesTerrain: true },
+  { id: 'spore-crawler', name: 'Inkfiend', cost: 2, power: 2, toughness: 3, movement: 1 },
+  { id: 'wraithling', name: 'Deepwater Acolyte', cost: 3, power: 3, toughness: 2, movement: 2 },
   { id: 'behemoth', name: 'Behemoth', cost: 5, power: 6, toughness: 6, movement: 1 },
+  // Flavor: some manner of eldritch octopus/kraken. C'Thun-inspired scaling payoff.
   {
-    id: 'the-deep-one',
-    name: 'The Deep One',
+    id: 'the-big-guy',
+    name: 'The Big Guy',
     cost: 8,
     power: 2,
     toughness: 4,
     movement: 1,
     growthPerTurn: 1,
+    requiresCenterControl: true,
   },
 ]
 

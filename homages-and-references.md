@@ -6,8 +6,10 @@ Games HexGame is borrowing mechanics, aesthetics, or design lessons from. Living
 
 - **Purple/orange color scheme** — Zerg-inspired palette for the two players and the board itself.
   Status: **Implemented** (`src/App.css`, `CREATURE_COLOR`/`OWNER_FILL` in `src/components/HexBoard.tsx`)
-- **Creep** — Zerg spreads a living territory ("Creep") outward from buildings, gating vision, unit speed, and where you can build. HexGame's territory system currently uses a static distance-to-home split decided once at game start (`ownerOf()` in `src/game/board.ts`).
-  Status: **Not yet implemented.** Natural evolution: territory that spreads/shrinks dynamically based on board presence, instead of a fixed initial 18/18 split.
+- **Creep** — Zerg spreads a living territory ("Creep") outward from buildings, gating vision, unit speed, and where you can build.
+  Status: **Implemented.** Territory is live, not a fixed starting split — only each player's home hex is permanently owned; everything else is neutral until claimed by a Magic Mushroom (self + 6 neighbors), and reverts the instant that mushroom dies or expires. `ownerOf()` in `src/game/board.ts`.
+- **"Survive for 30 minutes"** — the StarCraft campaign missions where the win condition is just outlasting a countdown while under pressure.
+  Status: **Implemented** as one of two win conditions — `SURVIVAL_COUNTDOWN_TURN = 30` in `src/game/gameReducer.ts`. If nobody's eliminated by turn 30, whoever holds more territory wins.
 
 ## Catan
 
@@ -26,6 +28,6 @@ Games HexGame is borrowing mechanics, aesthetics, or design lessons from. Living
 ## Hearthstone — *Whispers of the Old Gods* (C'Thun)
 
 - "Stall early, unleash a scaling Big Guy late" — a high-cost creature that grows the longer you wait to cast it, creating tension between playing it safe now vs. banking for a payoff.
-  Status: **Implemented** as "The Deep One" — `growthPerTurn` in `src/game/creatures.ts`, locked in at cast time via `effectiveStats()`.
+  Status: **Implemented** as "The Big Guy" (some manner of eldritch octopus) — `growthPerTurn` in `src/game/creatures.ts`, locked in at cast time via `effectiveStats()`.
 - Real C'Thun's growth came from feeding it with specific cards played throughout the game, not raw turn count.
   Status: **Not yet implemented** — current version is a simpler turn-count-only approximation. A richer version (cards that specifically buff the Big Guy) is a candidate future layer.

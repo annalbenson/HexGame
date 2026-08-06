@@ -1,32 +1,18 @@
-# React + TypeScript + Vite
+# HexGame
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A hex-grid board game riffing on the double meaning of "Hex" — grid tiles and magic. Two players cast creatures onto a hex-shaped board using mana, fight over territory, and race toward either wiping the other out or outlasting a turn-30 countdown.
 
-Currently, two official plugins are available:
+Catan-style hex board, Magic/Hearthstone-style creature casting, StarCraft Zerg-inspired color scheme and territory control. See `homages-and-references.md` for the full list of what's borrowed from where, and `implementation-log.md` for current mechanic status, build order, and open design questions — those two files are the source of truth for where the project actually is.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+React + SVG + [honeycomb-grid](https://github.com/flauwekeul/honeycomb) v4 + framer-motion, on Vite + TypeScript. Chosen over a game engine like Phaser because this is a turn-based, state-heavy game (resource panels, cards, board state) rather than a real-time/physics one — React's declarative state model fits that better than an imperative scene/update-loop model.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Note:** honeycomb-grid v4's API differs substantially from v3 — most examples found online are v3-era and won't match this codebase (`defineHex`/`Grid`/`spiral` traversers, `hex.corners` already absolute pixel coordinates, not relative).
 
-## Expanding the Oxlint configuration
+## Running it
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+npm install
+npm run dev
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.

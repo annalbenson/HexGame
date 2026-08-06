@@ -9,7 +9,7 @@ const DECK_LIST: Record<string, number> = {
   'spore-crawler': 4,
   wraithling: 3,
   behemoth: 2,
-  'the-deep-one': 1,
+  'the-big-guy': 1,
 }
 
 function shuffle<T>(items: T[]): T[] {
