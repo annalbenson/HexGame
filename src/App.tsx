@@ -49,7 +49,7 @@ function App() {
       <div id="board-container">
         <HexBoard state={state} dispatch={guardedDispatch} />
       </div>
-      <HandPanel state={state} dispatch={guardedDispatch} />
+      <HandPanel state={state} dispatch={guardedDispatch} aiPlayer={opponent === 'none' ? null : AI_PLAYER} />
     </div>
   )
 }

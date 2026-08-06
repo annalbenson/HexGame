@@ -101,6 +101,8 @@ Building this surfaced a real bug before it ever shipped: neither `HexBoard` nor
 
 **Caveat:** claude-in-chrome (browser automation) isn't set up in this environment, so this was verified via build/typecheck/lint and code review only, not by actually clicking through a live game — worth a first real playtest to confirm the pacing (550ms/move) and the interaction lock feel right before trusting this fully.
 
+**Both hands visible for playtesting (added 2026-08-06).** `HandPanel.tsx` previously only rendered `state.players[state.activePlayer].hand` — you couldn't see the AI's (or the other hotseat player's) cards at all except via the plain hand-count in `#deck-status`. Per explicit request, both hands now render side by side in `#hands`: orange fixed on the left, purple fixed on the right (matches `AI_PLAYER = 'orange'`, so this also reads naturally as "opponent left, you right" whenever an AI is selected). New `aiPlayer` prop on `HandPanel` swaps the column labels from plain "Orange"/"Purple" to "Opponent"/"You" when an AI seat is active, and stays plain in 2-player hotseat mode where there's no fixed "you." The inactive column's cards are always rendered `disabled` regardless of individual affordability (you can't act out of turn no matter what), and the whole column dims via CSS opacity — same `:disabled` styling already used for unaffordable cards, so a de-emphasized inactive hand reads consistently with the rest of the UI rather than introducing a new visual language.
+
 ## Parking lot / open ideas
 
 Not scheduled into the build order yet — captured so they don't get lost, not committed to.
