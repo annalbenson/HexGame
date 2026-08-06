@@ -25,8 +25,6 @@ export interface CreatureInstance {
   hasActedThisTurn: boolean
   /** Power bonus locked in at cast time, for templates with growthPerTurn. */
   bonusPower?: number
-  /** Turn number at which this creature automatically dies — currently only set for capturesTerrain creatures, so claimed ground has to be actively maintained. */
-  expiresOnTurn?: number
 }
 
 export interface CardInstance {

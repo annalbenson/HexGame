@@ -155,11 +155,6 @@ export function HexBoard({ state, dispatch }: HexBoardProps) {
             <text textAnchor="middle" y={radius - badgeHeight / 2} dy="0.35em" fontSize={10} fontWeight="700" fill="#ffffff">
               {getEffectivePower(creature)}/{creature.currentToughness}
             </text>
-            {creature.expiresOnTurn !== undefined && (
-              <text textAnchor="middle" y={radius + 14} fontSize={10} fontWeight="700" fill="#ffd24a">
-                {Math.max(0, creature.expiresOnTurn - state.turnNumber)} turns left
-              </text>
-            )}
             {template.triggersCountdown && state.bigGuyCastTurn[creature.owner] !== null && (
               <text textAnchor="middle" y={radius + 14} fontSize={10} fontWeight="700" fill="#ff6b6b">
                 opponent wins in {Math.max(0, BIG_GUY_COUNTDOWN - (state.turnNumber - state.bigGuyCastTurn[creature.owner]!))}

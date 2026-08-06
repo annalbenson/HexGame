@@ -11,8 +11,6 @@ const TERRITORY_ADVANTAGE_BONUS = 1
 export const BIG_GUY_COUNTDOWN = 6
 /** Backstop only — if neither player ever casts The Big Guy, the game would otherwise never end. Deliberately far past when a real game normally resolves; territory tiebreak, same as the old flat survival rule it replaces. */
 const BACKSTOP_TURN = 45
-/** How many turns a capturesTerrain creature (Magic Mushroom) lives before withering — claimed ground has to be actively maintained, not planted once and forgotten. */
-const MUSHROOM_LIFESPAN = 8
 
 export type GameAction =
   | { type: 'SELECT_CARD'; instanceId: string }
@@ -71,7 +69,6 @@ function castCreature(state: GameState, instanceId: string, q: number, r: number
     hasSummoningSickness: true,
     hasActedThisTurn: false,
     bonusPower: bonus,
-    expiresOnTurn: template.capturesTerrain ? state.turnNumber + MUSHROOM_LIFESPAN : undefined,
   }
 
   const nextHand = player.hand.filter((c) => c.instanceId !== instanceId)
@@ -142,10 +139,6 @@ function endTurn(state: GameState): GameState {
   const nextCreatures = { ...state.creatures }
   for (const key of Object.keys(nextCreatures)) {
     const creature = nextCreatures[key]
-    if (creature.expiresOnTurn !== undefined && creature.expiresOnTurn <= nextTurnNumber) {
-      delete nextCreatures[key]
-      continue
-    }
     if (creature.owner === nextPlayer) {
       nextCreatures[key] = { ...creature, hasSummoningSickness: false, hasActedThisTurn: false }
     }
