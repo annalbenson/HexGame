@@ -1,7 +1,7 @@
 import { territoryCounts } from '../game/board'
 import { createInitialState, gameReducer } from '../game/gameReducer'
 import type { GameState, PlayerId } from '../game/types'
-import { enumerateIntents, type Intent } from './intents'
+import { enumerateIntents, intentToActions, type Intent } from './intents'
 import { STRATEGIES, type StrategyName } from './strategies'
 
 const MAX_ACTIONS_PER_TURN = 20
@@ -20,13 +20,9 @@ export interface GameStats {
 }
 
 function applyIntent(state: GameState, intent: Intent): GameState {
-  if (intent.kind === 'end') return gameReducer(state, { type: 'END_TURN' })
-  if (intent.kind === 'cast') {
-    const selected = gameReducer(state, { type: 'SELECT_CARD', instanceId: intent.card.instanceId })
-    return gameReducer(selected, { type: 'CLICK_HEX', q: intent.q, r: intent.r })
-  }
-  const selected = gameReducer(state, { type: 'SELECT_CREATURE', hexKey: intent.fromKey })
-  return gameReducer(selected, { type: 'CLICK_HEX', q: intent.q, r: intent.r })
+  let next = state
+  for (const action of intentToActions(intent)) next = gameReducer(next, action)
+  return next
 }
 
 export function simulateGame(strategies: Record<PlayerId, StrategyName>): GameStats {

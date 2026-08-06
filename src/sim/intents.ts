@@ -1,5 +1,6 @@
 import { axialDistance, controlsTerritoryBeyondHome, createGrid, hexKey, ownerOf } from '../game/board'
 import { getTemplate } from '../game/creatures'
+import type { GameAction } from '../game/gameReducer'
 import type { CardInstance, CreatureInstance, GameState, PlayerId } from '../game/types'
 
 /**
@@ -81,4 +82,19 @@ export function enumerateIntents(state: GameState): Intent[] {
 
   intents.push({ kind: 'end' })
   return intents
+}
+
+/** The real reducer dispatches an intent requires — shared by the headless simulator and the live in-browser AI opponent, so both drive the same two-click protocol the same way. */
+export function intentToActions(intent: Intent): GameAction[] {
+  if (intent.kind === 'end') return [{ type: 'END_TURN' }]
+  if (intent.kind === 'cast') {
+    return [
+      { type: 'SELECT_CARD', instanceId: intent.card.instanceId },
+      { type: 'CLICK_HEX', q: intent.q, r: intent.r },
+    ]
+  }
+  return [
+    { type: 'SELECT_CREATURE', hexKey: intent.fromKey },
+    { type: 'CLICK_HEX', q: intent.q, r: intent.r },
+  ]
 }

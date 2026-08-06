@@ -19,6 +19,29 @@
   letter-spacing: 0.05em;
 }
 
+#opponent-select {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: #cbb8e0;
+}
+
+#opponent-select select {
+  background: #2a2136;
+  color: #eee0f5;
+  border: 1px solid #6a5885;
+  border-radius: 0.4rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+#ai-turn-indicator {
+  color: #ffd24a;
+  font-style: italic;
+}
+
 #board-container {
   flex: 1;
   width: 100%;
