@@ -1,6 +1,7 @@
 import { useReducer, useState } from 'react'
 import { HexBoard } from './components/HexBoard'
 import { HandPanel } from './components/HandPanel'
+import { HandSidePanel } from './components/HandSidePanel'
 import { createInitialState, gameReducer } from './game/gameReducer'
 import { useAiOpponent } from './hooks/useAiOpponent'
 import type { StrategyName } from './sim/strategies'
@@ -31,6 +32,7 @@ function App() {
   // flag through every click handler in both components.
   const isAiTurn = opponent !== 'none' && state.activePlayer === AI_PLAYER
   const guardedDispatch = isAiTurn ? () => {} : dispatch
+  const aiPlayer = opponent === 'none' ? null : AI_PLAYER
 
   return (
     <div id="app-root">
@@ -46,10 +48,14 @@ function App() {
         </select>
         {isAiTurn && <span id="ai-turn-indicator">AI is playing…</span>}
       </div>
-      <div id="board-container">
-        <HexBoard state={state} dispatch={guardedDispatch} />
+      <div id="game-row">
+        <HandSidePanel state={state} dispatch={guardedDispatch} playerId="orange" aiPlayer={aiPlayer} />
+        <div id="board-container">
+          <HexBoard state={state} dispatch={guardedDispatch} />
+        </div>
+        <HandSidePanel state={state} dispatch={guardedDispatch} playerId="purple" aiPlayer={aiPlayer} />
       </div>
-      <HandPanel state={state} dispatch={guardedDispatch} aiPlayer={opponent === 'none' ? null : AI_PLAYER} />
+      <HandPanel state={state} dispatch={guardedDispatch} />
     </div>
   )
 }

@@ -42,9 +42,17 @@
   font-style: italic;
 }
 
+#game-row {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
 #board-container {
   flex: 1;
-  width: 100%;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -162,66 +170,61 @@
   padding: 0.6rem;
 }
 
-#hands {
-  display: flex;
-  gap: 1.5rem;
-  width: 100%;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-.hand-column {
+.hand-side-panel {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  flex: 1;
-  min-width: 0;
-  max-width: 480px;
+  flex: 0 0 176px;
+  width: 176px;
+  min-height: 0;
   padding: 0.6rem;
   border-radius: 10px;
   border: 1px solid transparent;
   transition: opacity 0.15s ease, border-color 0.15s ease;
 }
 
-.hand-column:not(.hand-column-active) {
+.hand-side-panel:not(.hand-side-panel-active) {
   opacity: 0.6;
 }
 
-.hand-column-active {
+.hand-side-panel-active {
   border-color: #3a2e49;
   background: rgba(255, 255, 255, 0.02);
 }
 
-.hand-column-header {
+.hand-side-panel-header {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex-shrink: 0;
   padding: 0 0.2rem;
 }
 
-.hand-column-label {
+.hand-side-panel-label {
   font-weight: 700;
   font-size: 0.9rem;
 }
 
-.hand-column-label-orange {
+.hand-side-panel-label-orange {
   color: #e8944e;
 }
 
-.hand-column-label-purple {
+.hand-side-panel-label-purple {
   color: #c290ff;
 }
 
-.hand-column-mana {
+.hand-side-panel-mana {
   font-size: 0.78rem;
   color: #9c86b8;
 }
 
 .cards {
   display: flex;
+  flex-direction: column;
   gap: 0.7rem;
-  flex-wrap: wrap;
-  justify-content: center;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 0.2rem;
 }
 
 .card {
@@ -234,14 +237,15 @@
   overflow: hidden;
   color: #eee0f5;
   padding: 0;
-  width: 132px;
+  width: 100%;
+  flex-shrink: 0;
   cursor: pointer;
   text-align: left;
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
 .card:hover:not(:disabled) {
-  transform: translateY(-4px);
+  transform: translateX(4px);
   border-color: #ffb347;
 }
 
