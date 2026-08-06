@@ -75,6 +75,15 @@ This gives exactly the two win paths originally discussed: rush/wipe the opponen
 
 True custom pixel sprites (mushroom glyph, wand icon, etc., in the style of SeasonsPhaseGame) would need to be generated externally (same dream.ai workflow used for the card art) and dropped into `src/assets/` — happy to wire those in the same way once they exist, but can't generate the images directly in this session.
 
+## Headless playtesting harness (added 2026-08-06)
+
+`npm run playtest` (optionally `-- --games=N`, default 20 per matchup) runs simulated games directly against `gameReducer` — no browser needed. Four scripted bot personalities (`src/sim/strategies.ts`): `random`, `rusher` (aggressive tempo, takes any kill, dumps mana on the cheapest legal cast), `turtler` (keeps a Mushroom alive, only takes safe attacks, never advances without reason), `hoarder` (bank mana for The Big Guy, minimum Mushroom upkeep, contest the center). Legality is enumerated in `src/sim/intents.ts` by re-deriving from the same exported predicates the reducer uses (`ownerOf`, `controlsTerritoryBeyondHome`) rather than trial-running the reducer per candidate hex — fast enough to run hundreds of games in ~1-2 seconds — but the actual state transitions always go through the real `gameReducer`, so results reflect real game rules, not a reimplementation of them. `scripts/playtest.ts` runs every strategy pairing (both sides) and prints win rates, win-condition breakdown, average game length, Big Guy cast rate, cards burned, and final territory.
+
+**First run surfaced three findings, not yet acted on:**
+- Orange (first player) wins only ~29% of games aggregated across all matchups — a bigger gap than the documented income-timing asymmetry alone would suggest (see "Game phases & mana pacing" above). Worth a closer look before assuming it's fully explained.
+- Aggression currently dominates: `rusher` wins ~60% of its games vs. `turtler` at 32% and `hoarder` at 14%.
+- The Big Guy was never fielded once across 320 simulated games, including in the slowest turtler-mirror matchups (~28+ turns). Partly a naive-bot artifact (`hoarder` doesn't defend its lone Mushroom and dies to elimination around turn 6-7, well before turn 8-9 mana), but the fact that *no* strategy ever reached it is a signal the "gamble on Big Guy" arc may not be reachable under current pacing/rules as tuned. Candidate follow-ups if this holds up: soften the elimination condition, buff Mushroom's toughness, or retune Big Guy's cost/timing — not decided yet.
+
 ## Parking lot / open ideas
 
 Not scheduled into the build order yet — captured so they don't get lost, not committed to.
