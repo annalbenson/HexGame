@@ -1,11 +1,15 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { CREATURE_ART } from '../game/art'
 import { axialDistance, boardBounds, CENTER_COORDS, createGrid, hexKey, keyOf, ownerOf, polygonPoints, tentacleTargets, Tile, HOME_COORDS } from '../game/board'
 import { getEffectivePower, getTemplate } from '../game/creatures'
 import { BIG_GUY_COUNTDOWN } from '../game/gameReducer'
 import type { GameAction } from '../game/gameReducer'
-import type { GameState } from '../game/types'
+import type { CreatureInstance, GameState } from '../game/types'
+
+/** Keyframe wiggle played once on any token just involved in combat. */
+const HIT_WIGGLE = { x: [0, -5, 5, -4, 4, -2, 2, 0], rotate: [0, -8, 8, -6, 6, -3, 3, 0] }
+const NO_WIGGLE = { x: 0, rotate: 0 }
 
 const OWNER_FILL: Record<'orange' | 'purple' | 'neutral', string> = {
   orange: '#6b3a1c',
@@ -72,6 +76,28 @@ export function HexBoard({ state, dispatch }: HexBoardProps) {
     }
     return targets
   }, [state, hexes])
+
+  // Detected purely from state, not click handlers, so it fires for AI
+  // attacks too (useAiOpponent dispatches directly, bypassing onClick
+  // entirely). A hex "was just hit" if the creature there took damage (or
+  // was healed) in place, or if a different creature now occupies it than
+  // did before — the attacker moving into a hex it just vacated by a kill.
+  const prevCreaturesRef = useRef<Record<string, CreatureInstance>>({})
+  const hitKeys = useMemo(() => {
+    const prev = prevCreaturesRef.current
+    const hits = new Set<string>()
+    for (const [key, creature] of Object.entries(state.creatures)) {
+      const before = prev[key]
+      if (!before) continue
+      if (creature.currentToughness !== before.currentToughness || creature.templateId !== before.templateId || creature.owner !== before.owner) {
+        hits.add(key)
+      }
+    }
+    return hits
+  }, [state.creatures])
+  useEffect(() => {
+    prevCreaturesRef.current = state.creatures
+  }, [state.creatures])
 
   return (
     <svg
@@ -168,6 +194,7 @@ export function HexBoard({ state, dispatch }: HexBoardProps) {
             style={{ cursor: 'pointer' }}
             onClick={() => dispatch({ type: 'CLICK_HEX', q, r })}
           >
+          <motion.g animate={hitKeys.has(key) ? HIT_WIGGLE : NO_WIGGLE} transition={{ duration: 0.45, ease: 'easeInOut' }}>
             {isBigGuy && (
               <motion.circle
                 r={radius + 6}
@@ -208,6 +235,7 @@ export function HexBoard({ state, dispatch }: HexBoardProps) {
                 opponent wins in {Math.max(0, BIG_GUY_COUNTDOWN - (state.turnNumber - state.bigGuyCastTurn[creature.owner]!))}
               </text>
             )}
+          </motion.g>
           </motion.g>
         )
       })}
