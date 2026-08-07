@@ -318,6 +318,12 @@ function checkWinner(state: GameState): WinResult | null {
 function applyAction(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'SELECT_CARD':
+      // Clicking the already-selected card again cancels it -- otherwise
+      // there was no way to back out of a card selection except successfully
+      // casting it. Mirrors how re-clicking a selected creature deselects it.
+      if (state.selection?.type === 'card' && state.selection.instanceId === action.instanceId) {
+        return { ...state, selection: null }
+      }
       return { ...state, selection: { type: 'card', instanceId: action.instanceId } }
     case 'SELECT_CREATURE': {
       const creature = state.creatures[action.hexKey]
@@ -335,6 +341,18 @@ function applyAction(state: GameState, action: GameAction): GameState {
       const { selection } = state
 
       if (selection?.type === 'card') {
+        const selectedCard = state.players[state.activePlayer].hand.find((c) => c.instanceId === selection.instanceId)
+        const selectedTemplate = selectedCard ? getTemplate(selectedCard.templateId) : null
+        // The Big Guy sacrifice is the one case where clicking your own
+        // occupied hex is a deliberate cast, not a request to switch modes.
+        const isSacrificeClick = selectedTemplate?.mustCastOnCenter && key === hexKey(CENTER_COORDS.q, CENTER_COORDS.r)
+        // Otherwise, clicking your own creature while a card is selected
+        // switches to moving/attacking with it instead of attempting (and
+        // failing) to cast onto an occupied hex -- previously the only way
+        // out of a card selection was successfully casting it.
+        if (occupant && occupant.owner === state.activePlayer && !isSacrificeClick) {
+          return { ...state, selection: { type: 'creature', hexKey: key } }
+        }
         return castCreature(state, selection.instanceId, q, r)
       }
       if (selection?.type === 'creature') {

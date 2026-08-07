@@ -43,6 +43,11 @@ function hasLiveMushroom(state: GameState, playerId: PlayerId): boolean {
   return Object.values(state.creatures).some((c) => c.owner === playerId && getTemplate(c.templateId).capturesTerrain)
 }
 
+/** Replanting toward the contested middle of the board rather than always the closest-to-home legal spot -- otherwise Mushrooms just cluster deep in a player's own territory turn after turn, out of reach for an opponent trying to attack one for the heal/harvest payoff. */
+function frontierMushroomCast(mushroomCasts: CastIntent[]): CastIntent {
+  return mushroomCasts.reduce((best, c) => (axialDistance(c, CENTER_COORDS) < axialDistance(best, CENTER_COORDS) ? c : best))
+}
+
 const random: Strategy = (_state, intents) => {
   const nonEnd = intents.filter((i) => i.kind !== 'end')
   if (nonEnd.length === 0) return { kind: 'end' }
@@ -83,14 +88,14 @@ const turtler: Strategy = (state, intents) => {
   const casts = intents.filter(isCast)
   const mushroomCasts = casts.filter((c) => getTemplate(c.card.templateId).capturesTerrain)
 
-  if (!hasLiveMushroom(state, playerId) && mushroomCasts.length > 0) return mushroomCasts[0]
+  if (!hasLiveMushroom(state, playerId) && mushroomCasts.length > 0) return frontierMushroomCast(mushroomCasts)
 
   const safeAttacks = moves
     .map((m) => ({ intent: m, outcome: combatOutcome(state, m) }))
     .filter((x) => x.outcome?.killsDefender && !x.outcome.attackerDies)
   if (safeAttacks.length > 0) return safeAttacks[0].intent
 
-  if (mushroomCasts.length > 0) return mushroomCasts[0]
+  if (mushroomCasts.length > 0) return frontierMushroomCast(mushroomCasts)
 
   const otherCasts = casts.filter((c) => !getTemplate(c.card.templateId).capturesTerrain)
   if (otherCasts.length > 0) return pickRandom(otherCasts)
@@ -105,7 +110,7 @@ const hoarder: Strategy = (state, intents) => {
   const casts = intents.filter(isCast)
   const mushroomCasts = casts.filter((c) => getTemplate(c.card.templateId).capturesTerrain)
 
-  if (!hasLiveMushroom(state, playerId) && mushroomCasts.length > 0) return mushroomCasts[0]
+  if (!hasLiveMushroom(state, playerId) && mushroomCasts.length > 0) return frontierMushroomCast(mushroomCasts)
 
   const bigGuyCasts = casts.filter((c) => c.card.templateId === 'the-big-guy')
   if (bigGuyCasts.length > 0) return bigGuyCasts[0]
