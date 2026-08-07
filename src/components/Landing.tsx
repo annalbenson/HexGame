@@ -1,4 +1,4 @@
-import landingBg from '../assets/landing-bg.png'
+import landingBg from '../assets/landing-bg.jpg'
 
 interface LandingProps {
   onStartGame: () => void

@@ -2,11 +2,14 @@
   height: 100vh;
   width: 100%;
   position: relative;
-  background-size: cover;
+  background-size: contain;
   background-position: center;
+  background-repeat: no-repeat;
+  background-color: #0c0810;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding-top: 7vh;
   box-sizing: border-box;
   overflow: hidden;
 }
