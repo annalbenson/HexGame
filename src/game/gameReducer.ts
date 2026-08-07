@@ -1,12 +1,14 @@
 import { axialDistance, CENTER_COORDS, controlsTerritoryBeyondHome, createEmptyPressure, hexKey, ownerOf, tentacleTargets, territoryCounts, updatePressure } from './board'
-import { effectiveStats, getEffectivePower, getTemplate } from './creatures'
-import { buildStartingHand, drawCards } from './deck'
-import type { CreatureInstance, GameState, PlayerId, PlayerState } from './types'
+import { CREATURE_TEMPLATES, effectiveStats, getEffectivePower, getTemplate } from './creatures'
+import { buildStartingHand, drawCards, MAX_HAND_SIZE } from './deck'
+import type { CardInstance, CreatureInstance, CreatureTemplate, GameState, PlayerId, PlayerState } from './types'
 
 const STARTING_MANA = 1
 const MANA_INCOME = 1
 const DRAW_PER_TURN = 1
 const TERRITORY_ADVANTAGE_BONUS = 1
+/** Coin-flip odds that killing a Mushroom hands its owner a fresh one to replant, instead of healing the attacker. Without this, a player who loses every Mushroom copy they've drawn has no way back into the territory game at all. */
+const MUSHROOM_EAT_HARVEST_CHANCE = 0.5
 /** Turns after The Big Guy is cast before its owner's opponent wins outright by having survived it — the "gamble" arc's actual payoff/risk. Exported for the board's live countdown display. */
 export const BIG_GUY_COUNTDOWN = 6
 /** Backstop only — if neither player ever casts The Big Guy, the game would otherwise never end. Deliberately far past when a real game normally resolves; territory tiebreak, same as the old flat survival rule it replaces. */
@@ -46,6 +48,32 @@ function otherPlayer(player: PlayerId): PlayerId {
 function coordsFromKey(key: string): { q: number; r: number } {
   const [q, r] = key.split(',').map(Number)
   return { q, r }
+}
+
+type MushroomEatOutcome = { kind: 'heal'; toughness: number } | { kind: 'harvest'; card: CardInstance }
+
+let harvestedCardCounter = 0
+
+/**
+ * Killing a Mushroom is a coin flip between healing the attacker to full and
+ * handing its owner a fresh Mushroom card to replant — "eating" it either
+ * nourishes you or you walk away with its spores. The harvest half exists
+ * specifically so a player who's lost every Mushroom copy they've drawn
+ * isn't permanently locked out of ever re-establishing territory.
+ */
+function resolveMushroomEat(owner: PlayerId, attackerTemplate: CreatureTemplate, bonusPower: number | undefined): MushroomEatOutcome {
+  if (Math.random() < MUSHROOM_EAT_HARVEST_CHANCE) {
+    const mushroomTemplateId = CREATURE_TEMPLATES.find((t) => t.capturesTerrain)!.id
+    return { kind: 'harvest', card: { instanceId: `${owner}-harvested-${harvestedCardCounter++}`, templateId: mushroomTemplateId } }
+  }
+  return { kind: 'heal', toughness: attackerTemplate.toughness + (bonusPower ?? 0) }
+}
+
+/** Respects the hand-size cap the same way a normal draw would — a harvested card is lost if the hand's already full, not a special case that ignores the limit. */
+function addCardToHand(players: Record<PlayerId, PlayerState>, owner: PlayerId, card: CardInstance): Record<PlayerId, PlayerState> {
+  const player = players[owner]
+  if (player.hand.length >= MAX_HAND_SIZE) return players
+  return { ...players, [owner]: { ...player, hand: [...player.hand, card] } }
 }
 
 function castCreature(state: GameState, instanceId: string, q: number, r: number): GameState {
@@ -119,18 +147,18 @@ function moveOrAttack(state: GameState, fromKey: string, q: number, r: number): 
   } else {
     const updatedDefenderToughness = defender.currentToughness - getEffectivePower(attacker)
     const defenderSurvives = updatedDefenderToughness > 0
-    // Killing a Mushroom heals the attacker to full — eating it, thematically
-    // — a direct reward for going on the attack rather than just holding
-    // ground, and self-limiting since it only pays off against Mushrooms an
-    // opponent actually plants.
+    // Killing a Mushroom is a coin flip: heal to full, or harvest a fresh
+    // Mushroom card — a direct reward for going on the attack rather than
+    // just holding ground, and self-limiting since it only pays off against
+    // Mushrooms an opponent actually plants.
     const ateAMushroom = !defenderSurvives && getTemplate(defender.templateId).capturesTerrain
-    const attackerMaxToughness = template.toughness + (attacker.bonusPower ?? 0)
     const attackerToughnessAfterCombat = attacker.currentToughness - getEffectivePower(defender)
     const attackerSurvives = attackerToughnessAfterCombat > 0
+    const eatOutcome = ateAMushroom && attackerSurvives ? resolveMushroomEat(attacker.owner, template, attacker.bonusPower) : null
 
     const updatedAttacker: CreatureInstance = {
       ...attacker,
-      currentToughness: ateAMushroom && attackerSurvives ? attackerMaxToughness : attackerToughnessAfterCombat,
+      currentToughness: eatOutcome?.kind === 'heal' ? eatOutcome.toughness : attackerToughnessAfterCombat,
       hasActedThisTurn: true,
     }
     const updatedDefender: CreatureInstance = { ...defender, currentToughness: updatedDefenderToughness }
@@ -141,6 +169,15 @@ function moveOrAttack(state: GameState, fromKey: string, q: number, r: number): 
     if (defenderSurvives) nextCreatures[toKey] = updatedDefender
     if (attackerSurvives) {
       nextCreatures[defenderSurvives ? fromKey : toKey] = updatedAttacker
+    }
+
+    if (eatOutcome?.kind === 'harvest') {
+      return {
+        ...state,
+        creatures: nextCreatures,
+        players: addCardToHand(state.players, attacker.owner, eatOutcome.card),
+        selection: null,
+      }
     }
   }
 
@@ -168,24 +205,33 @@ function tentacleStrike(state: GameState, fromKey: string, q: number, r: number)
 
   const updatedDefenderToughness = defender.currentToughness - getEffectivePower(attacker)
   const defenderSurvives = updatedDefenderToughness > 0
-  // Same "eating a Mushroom heals you" rule as moveOrAttack — Big Guy never
-  // takes counter-damage from a tentacle strike, but it can have been
-  // damaged earlier by something that walked up and hit it normally.
+  // Same "eating a Mushroom" coin flip as moveOrAttack — Big Guy never takes
+  // counter-damage from a tentacle strike, but it can have been damaged
+  // earlier by something that walked up and hit it normally.
   const ateAMushroom = !defenderSurvives && getTemplate(defender.templateId).capturesTerrain
-  const attackerMaxToughness = getTemplate(attacker.templateId).toughness + (attacker.bonusPower ?? 0)
+  const eatOutcome = ateAMushroom ? resolveMushroomEat(attacker.owner, getTemplate(attacker.templateId), attacker.bonusPower) : null
 
   const nextCreatures = {
     ...state.creatures,
     [fromKey]: {
       ...attacker,
       hasActedThisTurn: true,
-      currentToughness: ateAMushroom ? attackerMaxToughness : attacker.currentToughness,
+      currentToughness: eatOutcome?.kind === 'heal' ? eatOutcome.toughness : attacker.currentToughness,
     },
   }
   if (defenderSurvives) {
     nextCreatures[toKey] = { ...defender, currentToughness: updatedDefenderToughness }
   } else {
     delete nextCreatures[toKey]
+  }
+
+  if (eatOutcome?.kind === 'harvest') {
+    return {
+      ...state,
+      creatures: nextCreatures,
+      players: addCardToHand(state.players, attacker.owner, eatOutcome.card),
+      selection: null,
+    }
   }
 
   return { ...state, creatures: nextCreatures, selection: null }
