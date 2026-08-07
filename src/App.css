@@ -58,7 +58,10 @@
   flex-direction: column;
   gap: 0.85rem;
   width: 240px;
-  margin-top: 0.5rem;
+  /* Pushes the menu down away from the title/tagline, landing in the
+     upper-middle of the screen -- clearly separated, but still above the
+     background image's own vertical center. */
+  margin-top: 16vh;
 }
 
 .landing-button {
